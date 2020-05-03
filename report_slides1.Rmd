@@ -1,0 +1,252 @@
+---
+title: "Incorporating genetic score with other pre-trauma risk factors of post-traumatic stress disorder: a step towards a robust multi-modal risk prediction model"
+output:
+  ioslides_presentation:
+    transition: slower
+    font_adjustment: -6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE,  message=FALSE)
+```
+
+
+# Why incorporate additional risk factors?
+
+## Pros and cons of genetic predictors for PTSD
+
+- Pros
+  - Can be accurately and cheaply (~$50) measured
+  - Can be assessed before trauma exposure
+  - For other omics markers, blood and brain profiles do not match perfectly
+  - Can leverage external large scale genetic studies
+
+- Cons
+  - Privacy and ethical issues associated with genetic profiles
+  - Performance is inherently limited (h2~30%)
+
+
+## Choosing other predictors
+
+Three main criteria:
+- literature evidence for a relatively large effect
+- pre-trauma risk factor like genetics
+- can be measured easily and accurately
+
+Accordingly, three predictors are studied
+1. Polygenic risk (PRS)
+2. Childhood adversity (CA)
+3. Educational attainment (EA)
+
+
+```{r}
+.libPaths( c( "/opt/R/3.6.2/lib/R/library" , .libPaths() ) )
+.libPaths()
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+# loading datasets
+
+# SysBio pheno data
+t1 <- read_delim("/data/humgen/burook/SysBio_analysis/table_pred", col_names = TRUE, delim = " ")
+sb_pheno1 <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t") %>%
+  mutate(ID=as.character(ID)) %>% 
+  inner_join(t1, by=c("ID"="Sample"))
+  
+# Ft. Campbell pheno data
+t1 <- read_delim("/data/humgen/burook/FC_analysis/table_pred", col_names = TRUE, delim = " ") 
+fc_pheno1 <- read_delim("/data/humgen/burook/data_raw/fc/clinical/FC_data_for_PGM.txt", col_names = TRUE, delim = "\t") %>% 
+  mutate(ID=as.character(ID)) %>% 
+  inner_join(t1, by=c("ID"="Sample")) 
+
+# GTP pheno data
+t1 <- read_delim("/data/humgen/burook/GTP_analysis/table_pred", col_names = TRUE, delim = " ") 
+gtp_pheno1 <- read_delim("/data/humgen/burook/GTP_analysis/GTP_pheno1.txt", col_names = TRUE, delim = "\t") %>% 
+  inner_join(t1, by=c("IID"="Sample")) 
+
+# AURORA data
+t1 <- read_delim("/data/humgen/burook/AURORA/table_pred", col_names = TRUE, delim = " ")
+aur_pheno1 <- read_delim("/data/humgen/burook/AURORA/aur_pheno1.txt", col_names = TRUE, delim = "\t") %>% 
+  mutate(IID=as.character(IID)) %>% 
+  inner_join(t1, by=c("IID"="Sample")) 
+```
+
+
+
+
+## Cohorts Description 
+
+| Dataset | SysBio | Ft. Campbell | GTP | AURORA | 
+|---------------|---------------|---------------|---------------|---------------|
+| Use      | Training and Validation | Testing/ Replication | Testing/ Replication | Testing/ Replication |
+| n      | `r nrow(sb_pheno1)` | `r nrow(fc_pheno1)` |  `r nrow(gtp_pheno1)` | `r nrow(aur_pheno1)`  |
+| Population      | Veterans from Marines, Navy, Army and the Air Force | Active-duty Army personnel | Civilian recruited from primary care waiting room | Civilian recruited at emergency room |
+| Diagnosis Score      | CAPS | PCL | PTSS | PCL |
+| %cases (N) | | | | |
+| %female(N) | | | | |
+| Age: mean (sd) | | | | |
+
+
+
+## Datasets
+
+| SysBio   | Ft. Campbell | GTP    | AURORA |
+|---------------|---------------|---------------|---------------|
+|<img width=180/>|<img width=180/>|<img width=180/>|<img width=180/>|
+
+```{r dodge-st, fig.show = "hold", out.width = "25%"}
+
+# Race/ethnicity
+
+sb_pheno1 %>% 
+  group_by(predtree) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=predtree )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("SysBio") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+fc_pheno1 %>% 
+  group_by(predtree) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=predtree )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("Ft. Campbell") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+gtp_pheno1 %>% 
+  group_by(predtree) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=predtree )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("GTP") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+aur_pheno1 %>% 
+  group_by(predtree) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=predtree )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("AURORA") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+
+# Gender
+
+sb_pheno1 %>% 
+  mutate(DemoGend=factor(DemoGend) %>% fct_recode(male="1",female="2") %>% fct_relevel("male","female")) %>% 
+  group_by(DemoGend) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=DemoGend )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("SysBio") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+fc_pheno1 %>% 
+  mutate(GENDER=as.factor(GENDER) %>% fct_recode(male="Male",female="Female") %>% fct_relevel("male","female")) %>% 
+  group_by(GENDER) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=GENDER )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("Ft. Campbell") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+
+gtp_pheno1 %>% 
+  mutate(sex=as.factor(sex)%>% fct_recode(male="0",female="1",NULL="8584") %>% fct_relevel("male","female")) %>% 
+  group_by(sex) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=sex )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("GTP") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+aur_pheno1 %>% 
+  mutate(gend=as.factor(gend) %>% fct_recode(male="1",female="2") %>% fct_relevel("male","female")) %>% 
+  group_by(gend) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=gend )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("AURORA") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+# PTSD status
+
+sb_pheno1 %>% 
+  mutate(PTSD_status=as.factor(PTSD_status)) %>% 
+  group_by(PTSD_status) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=PTSD_status )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("SysBio") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+fc_pheno1 %>% 
+  mutate(PTSD_status=as.factor(PTSD_status)) %>% 
+  group_by(PTSD_status) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=PTSD_status )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("Ft. Campbell") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+gtp_pheno1 %>% 
+  mutate(PTSD_diagnosis=as.factor(PTSD_diagnosis)) %>% 
+  group_by(PTSD_diagnosis) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=PTSD_diagnosis )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("GTP") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+aur_pheno1 %>% 
+  mutate(M3_PCL5=as.factor(M3_PCL5)) %>% 
+  group_by(M3_PCL5) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=M3_PCL5 )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+  ggtitle("AURORA") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5))  # center the title
+
+```
+
+
+
+# Marginal effects of individual predictors
+
+
+# Composite risk score of the three
+
+# Summary and future work
+
+
