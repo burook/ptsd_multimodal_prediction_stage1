@@ -1,0 +1,128 @@
+---
+title: "Ancestry estimation and check"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+date: "April 18, 2020"
+---
+
+```{r}
+.libPaths( c( "/opt/R/3.6.2/lib/R/library" , .libPaths() ) )
+.libPaths()
+```
+
+```{r}
+library(tidyverse)
+
+library(readxl)
+require(data.table)
+```
+
+### Preparing the reference data
+
+The 1000 genome data has been prepocessed (including thinning) already. 
+
+
+## Ancestry estimation with PCA
+
+```{bash}
+cd /data/humgen/burook/SysBio_analysis/
+#target_genome_path <- "/PHShome/bm363/ancestry_estimation/sb1"
+#target_race_path <- "/PHShome/bm363/ancestry_estimation/sb_race.txt"
+
+Rscript /data/humgen/burook/AURORA/notebooks/ancestry_prediction_svmandtree.R /PHShome/bm363/ancestry_estimation/sb_race.txt /PHShome/bm363/ancestry_estimation/sb_race.txt
+
+```
+
+
+```{r}
+t1 <- read_delim("/data/humgen/burook/SysBio_analysis/table_pred", col_names = TRUE, delim = " ")
+
+t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  group_by(predtree) %>%
+  summarise(n=n()) %>%
+  mutate(n_perc = 100*n / sum(n)) %>% 
+  print()
+```
+
+```{r}
+target_race <- read_delim("/PHShome/bm363/ancestry_estimation/sb_race.txt", col_names = TRUE, delim = "\t")
+
+ t1 %>% 
+   left_join(target_race, by=c("Sample"="ID")) %>% 
+   filter(!is.na(Ethnicity_race.y)) %>% 
+   subset(select=c("Ethnicity_race.y","predtree")) %>% 
+   table() %>% 
+   print()
+
+```
+
+```{r}
+fam_file <- read_delim("/data/humgen/burook/data_raw/sb/pts_sb1_mix_bm-qc1.hg19.ch.fl.bg.fam", col_names = FALSE, delim = " ");
+PTSD_clinical <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t");
+
+
+PTSD_status2 <- PTSD_clinical %>% 
+  mutate(status = "-") %>% 
+  mutate(status = replace(status, PTSD_status=="Negative", 0)) %>% 
+  mutate(status = replace(status, PTSD_status=="Positive", 1)) %>% 
+  filter(status!="-") %>% 
+  subset(select=c("ID","status")) %>% 
+  print()
+write.table(PTSD_status2, "/data/humgen/burook/SysBio_analysis/sb_ptsd/pheno_file_status2", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+```
+
+
+
+```{bash}
+cd /data/humgen/burook/SysBio_analysis/sb_ptsd/
+
+/PHShome/bm363/bin/plink2 \
+  --bfile /data/humgen/burook/data_imputed/sb/cobg_dir_genome_wide/pts_sb1_mix_bm-qc1.hg19.ch.fl.bgn \
+  --maf 0.01 \
+  --geno 0.01 \
+  --mind 0.1 \
+  --hwe 0.001 \
+  --make-bed \
+  --out tmp_sb1
+  
+```
+
+
+```{bash}
+head /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results
+sort -k 2,2 -r -u pts_eur_freeze2_overall.results > pts_eur_freeze2_overall.results.exDupVar
+```
+
+
+```{r}
+x <- read_delim("/data/humgen/burook/SysBio_analysis/sb_ptsd/pheno_file_status2",col_names = F, delim = " ") %>% 
+  count(X2) %>% 
+  print()
+
+```
+
+
+```{bash}
+# with freeze-2 PGC-PTSD summ stats
+R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
+  plink /PHShome/bm363/bin/plink2 \
+  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results.exDupVar \
+  target /data/humgen/burook/SysBio_analysis/sb_ptsd/tmp_sb1 \
+  pheno.file /data/humgen/burook/SysBio_analysis/sb_ptsd/pheno_file_status2 \
+  binary.target T \
+  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
+  clump.snps T \
+  prune.snps F \
+  quantiles T \
+  figname sb_ptsd \
+  wd /data/humgen/burook/SysBio_analysis/sb_ptsd/
+```
+
+
+
+
+
