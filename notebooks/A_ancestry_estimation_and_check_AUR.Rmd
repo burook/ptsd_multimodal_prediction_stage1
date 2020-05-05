@@ -1,0 +1,369 @@
+---
+title: "Ancestry estimation and check"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+date: "Jan. 16, 2020"
+---
+
+```{r}
+.libPaths( c( "/opt/R/3.6.2/lib/R/library" , .libPaths() ) )
+.libPaths()
+```
+
+```{r}
+library(tidyverse)
+
+library(readxl)
+require(readr)
+require(dplyr)
+require(data.table)
+```
+
+## Preprocessing genetic and phenotype data
+
+### Preparing the reference data
+
+The 1000 genome data has been downloaded and preprocessed in a different notebook.
+Since the 1Kgenome contains a lot variants and for ancestry estimation we only need a small fraction of them, let’s first do thinning by QC and pruning.
+
+```{bash, eval=FALSE}
+plink2=/PHShome/bm363/bin/plink2
+refloc=/PHShome/bm363/ref
+cd ${refloc}
+
+for chr in {1..22}; do
+    ${plink2} --bfile ${refloc}/ALL.chr${chr}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes \
+    --maf 0.10 \
+    --indep-pairwise 200 100 0.2 \
+    --out tmpsnp${chr}
+    
+    ${plink2} --bfile ${refloc}/ALL.chr${chr}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes \
+    --extract tmpsnp${chr}.prune.in \
+    --make-bed \
+    --out tmppp${chr}_2 ;
+done
+
+# find a list of plink files for each chromosome and merge them into a single file
+find . -type f -name '*_2.bed' > file_list.txt
+sed -i 's/.bed//g' file_list.txt
+sed -i 's/.\///g' file_list.txt
+${plink} --bfile tmppp1_2 --merge-list file_list.txt --make-bed --out ref_1kgenome_prunned 
+
+# Now clean temporary files
+rm tmp*
+```
+
+
+The five super populations of the 1Kgenome data are:
+1. AFR (African), which comprises the following populatins: YRI, LWK, GWD, MSL, ESN, ASW, ACB
+2. AMR (Ad Mixed American), which comprises the following populations: MXL, PUR, CLM, PEL
+3. EAS (East Asian), which comprises the following populations: CHB, JPT, CHS, CDX, KHV
+4. EUR (European), which comprises the following populations: CEU, TSI, FIN, GBR, IBS
+5. SAS, (South Asian), which comprises the following populations: GIH, PJL, BEB, STU, ITU
+
+More info at https://www.internationalgenome.org/category/sample/
+
+```{r}
+sample_info <- read_delim("/PHShome/bm363/ref/20130606_sample_info.txt",
+                          col_names = TRUE, delim = "\t");
+sam_info_1k <- subset(sample_info, select=c(Sample, Population))
+
+sam_info_1k <- sam_info_1k %>%
+  mutate(SuperPopulation = "unknown") %>%
+  mutate(SuperPopulation = replace(SuperPopulation, Population %in% c("YRI", "LWK", "GWD", "MSL", "ESN", "ASW", "ACB"), "AFR")) %>%
+  mutate(SuperPopulation = replace(SuperPopulation, Population %in% c("MXL", "PUR", "CLM", "PEL"), "AMR")) %>%
+  mutate(SuperPopulation = replace(SuperPopulation, Population %in% c("CHB", "JPT", "CHS", "CDX", "KHV"), "EAS")) %>%
+  mutate(SuperPopulation = replace(SuperPopulation, Population %in% c("CEU", "TSI", "FIN", "GBR", "IBS"), "EUR")) %>%
+  mutate(SuperPopulation = replace(SuperPopulation, Population %in% c("GIH", "PJL", "BEB", "STU", "ITU"), "SAS"))
+
+write.table(sam_info_1k, "sam_info_1k.txt", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
+
+```
+
+```{r}
+sample_info %>% print()
+
+sam_info_1k %>% 
+  print() %>% 
+  count(SuperPopulation) %>% 
+  print()
+```
+
+
+### Preparing the target data
+
+First let's load the file that contains the pheno data, a list of genotyped samples and a key for cross referencing the two. 
+
+```{r}
+# load relevant datasets
+aur_pheno1 <- read_delim("/data/humgen/guffantilab/AURORA/Aurora_Freeze2_PID/AURORA_Freeze_2_1.0.csv", col_names = TRUE, delim = ",")
+cross_ref1 <- read_excel("/PHShome/bm363/AURORA/Broad_PID_crossref.xlsx")
+aur_gen1 <- read_delim("/data/humgen/burook/data_raw/aur/au1.fam", col_names = FALSE, delim = " ")
+
+cross_ref2 <- cross_ref1[,c(5,6)]
+colnames(cross_ref2) <- c("FID", "PID")
+
+colnames(aur_gen1) <- c("FID","IID","p1","p2","gend","phen")
+
+# combine the pheno and geno data using the cross reference
+aur_pheno2 <- cross_ref2 %>% 
+  full_join(aur_pheno1, by="PID") %>% 
+  full_join(aur_gen1, by="FID") 
+
+```
+
+
+```{r}
+cross_ref2 %>% 
+  right_join(aur_pheno1, by="PID") %>% 
+  full_join(aur_gen1, by="FID") %>% 
+  filter(!is.na(FID)) %>% 
+  filter(is.na(PID)) %>% 
+  print()
+
+```
+
+Self-identified ancestry was coded as follows: 1=Hispanic, 2=White, 3=Black, 4=Asian, and 5=Asian/other. Let's prepare a variable with this translation and prepare self-identified ancestry file for estimation with genotype data.
+
+```{r}
+
+aur_pheno2 <- aur_pheno2 %>% 
+  mutate(Ethnicity_race = "None") %>% 
+  mutate(Ethnicity_race = replace(Ethnicity_race, ED_RaceEthCode==1, "Hispanic")) %>% 
+  mutate(Ethnicity_race = replace(Ethnicity_race, ED_RaceEthCode==2, "White")) %>% 
+  mutate(Ethnicity_race = replace(Ethnicity_race, ED_RaceEthCode==3, "Black")) %>% 
+  mutate(Ethnicity_race = replace(Ethnicity_race, ED_RaceEthCode==4, "Asian")) %>% 
+  mutate(Ethnicity_race = replace(Ethnicity_race, ED_RaceEthCode==NA, "None")) 
+
+aur_race2 <- aur_pheno2 %>% 
+  subset(select=c("IID","Ethnicity_race")) %>% 
+  print()
+
+write.table(aur_race2, "/PHShome/bm363/ancestry_estimation/aur_race2.txt", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
+
+```
+
+```{r}
+
+aur_pheno2 %>% 
+  filter(!is.na(IID)) %>% 
+  group_by(Ethnicity_race) %>%
+  summarise(n=n()) %>%
+  mutate(n_perc = 100*n / sum(n)) %>% 
+  print()
+
+```
+
+## Ancestry estimation with PCA
+
+Since this is somewhat a long script let’s put it in its own file and call it from here. It takes two arguments: the genome and ancestry labels of the target sample. This will save the result as two tables: table_raw and table_pred.
+
+```{bash}
+cd /PHShome/bm363/AURORA/
+Rscript notebooks/ancestry_prediction_svmandtree.R /data/humgen/burook/data_raw/aur/au1 /PHShome/bm363/ancestry_estimation/aur_race2.txt
+```
+
+
+```{r}
+t1 <- read_delim("/PHShome/bm363/AURORA/table_pred", col_names = TRUE, delim = " ")
+
+t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  group_by(predtree) %>%
+  summarise(n=n()) %>%
+  mutate(n_perc = 100*n / sum(n)) %>% 
+  print()
+
+```
+
+
+```{r}
+t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  subset(select=c("Ethnicity_race","predtree")) %>% 
+  table() %>% 
+  print()
+
+```
+
+
+```{r}
+t0 <- read_delim("/PHShome/bm363/AURORA/table_raw", col_names = TRUE, delim = " ")
+
+pdf("/PHShome/bm363/AURORA/figures/pca1_pca2_2d_plot0.pdf", width=5.5, height=5)
+plot1 <- t0 %>% 
+  filter(!is.na(SuperPopulation)) %>% 
+  ggplot(aes(x=P1,y=P2)) + 
+  theme(legend.position="right", axis.text=element_text(size = 6)) +
+  geom_point(aes(group=SuperPopulation, colour=SuperPopulation)) +
+  xlab("PC1") + 
+  ylab("PC2") +
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), panel.background = element_blank(), 
+        axis.line = element_line(colour = "black",size=0.5),axis.text=element_text(size=12)) 
+plot1
+
+dev.off()
+plot1
+```
+
+```{r}
+pdf("/PHShome/bm363/AURORA/figures/pca1_pca2_2d_plot1.pdf", width=5.5, height=5)
+plot1 <- t1 %>% 
+  filter(!is.na(SuperPopulation)) %>% 
+  ggplot(aes(x=P1,y=P2)) + 
+  theme(legend.position="right", axis.text=element_text(size = 6)) +
+  geom_point(aes(group=SuperPopulation, colour=SuperPopulation)) +
+  xlab("PC1") + 
+  ylab("PC2") +
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), panel.background = element_blank(), 
+        axis.line = element_line(colour = "black",size=0.5),axis.text=element_text(size=12)) 
+plot1
+
+dev.off()
+plot1
+```
+
+```{r}
+pdf("/PHShome/bm363/AURORA/figures/pca1_pca2_2d_plot2.pdf", width=5.5, height=5)
+plot1 <- t1 %>% 
+  filter(!is.na(SuperPopulation)) %>% 
+  ggplot(aes(x=P1,y=P2)) + 
+  theme(legend.position="right", axis.text=element_text(size = 6)) +
+  geom_point(aes(group=SuperPopulation, colour=SuperPopulation)) +
+  geom_vline(xintercept=-0.0049, linetype="dashed", color = "red") +
+  geom_hline(yintercept=0.017, linetype="dashed", color = "red") +
+  geom_hline(yintercept=-0.012, linetype="dashed", color = "red") +
+  xlab("PC1") + 
+  ylab("PC2") +
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), panel.background = element_blank(), 
+        axis.line = element_line(colour = "black",size=0.5),axis.text=element_text(size=12)) 
+plot1
+
+dev.off()
+plot1
+```
+
+
+```{r}
+
+#pdf("/PHShome/bm363/AURORA/figures/pca1_pca2_2d_plot3.pdf", width=5.5, height=5)
+plot1 <- t1 %>% 
+  mutate(SuperPopulation = replace(SuperPopulation, is.na(SuperPopulation), ".AURORA")) %>% 
+  ggplot(aes(x=P1,y=P2)) + 
+  theme(legend.position="right", axis.text=element_text(size = 6)) +
+  geom_point(aes(group=SuperPopulation, colour=SuperPopulation)) +
+  scale_color_manual(values=c("gray60", "#F8766D", "#7CAE00", "#00BFC4", "#C77CFF")) +
+  # c("red", "gray", "green", "blue", "purple")
+  xlab("PC1") + 
+  ylab("PC2") +
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), panel.background = element_blank(), 
+        axis.line = element_line(colour = "black",size=0.5),axis.text=element_text(size=12)) 
+plot1
+
+# ,labels=c("AFR","EAS","EUR","SAS","AURORA")
+#dev.off()
+#plot1
+```
+
+```{r}
+#  mutate(predtree = replace(predtree, is.na(SuperPopulation), paste0("AURORA",predtree, sep = "_")) %>% 
+
+#pdf("/PHShome/bm363/AURORA/figures/pca1_pca2_2d_plot4.pdf", width=5.5, height=5)
+plot2 <- t1 %>% 
+  mutate(SuperPopulation = replace(SuperPopulation, !is.na(SuperPopulation), "1000G")) %>% 
+  mutate(SuperPopulation = replace(SuperPopulation, is.na(SuperPopulation), "AURORA")) %>% 
+  mutate(predtree = paste(SuperPopulation, predtree, sep = "_")) %>% 
+  ggplot(aes(x=P1,y=P2)) + 
+  theme(legend.position="right", axis.text=element_text(size = 6)) +
+  geom_point(aes(group=predtree, colour=predtree)) +
+  xlab("PC1") + 
+  ylab("PC2") +
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), panel.background = element_blank(), 
+        axis.line = element_line(colour = "black",size=0.5),axis.text=element_text(size=12)) 
+plot2
+
+#dev.off()
+#plot2
+```
+
+```{r}
+
+pdf("/PHShome/bm363/AURORA/figures/pca1_pca2_2d_plot5.pdf", width=5.5, height=5)
+plot3 <- t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  ggplot(aes(x=P1,y=P2)) + 
+  theme(legend.position="right", axis.text=element_text(size = 6)) +
+  geom_point(aes(group=Ethnicity_race, colour=Ethnicity_race)) +
+  xlab("PC1") + 
+  ylab("PC2") +
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(), panel.background = element_blank(), 
+        axis.line = element_line(colour = "black",size=0.5),axis.text=element_text(size=12)) 
+plot3
+
+dev.off()
+plot3
+```
+
+```{r}
+library(rpart)
+set.seed(17)
+
+tmptree1 <- rpart(SuperPopulation ~ .,
+            data=t1[(!is.na(t1$SuperPopulation)),c("SuperPopulation","P1","P2")],
+            method="class", minsplit = 2, minbucket = 1)
+```
+
+```{r}
+library(rattle)
+#tmptree1
+fancyRpartPlot(tmptree1)
+
+```
+
+
+QC and imputation will be performed with ancestry-stratified stratified samples. Let’s prepare files with a list of each ancestry groups (to be used with PLKINK (--keep) command).
+
+```{r}
+colnames(t1)[1] <- "IID"
+
+# AFR
+samples_AFR <- t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  full_join(aur_pheno2, by="IID") %>% 
+  filter(predtree=="AFR") %>% 
+  subset(select=c("FID","IID")) 
+
+write.table(samples_AFR, "/PHShome/bm363/ancestry_estimation/samples_AFR.txt", row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
+
+# EUR
+samples_EUR <- t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  full_join(aur_pheno2, by="IID") %>% 
+  filter(predtree=="EUR") %>% 
+  subset(select=c("FID","IID")) 
+
+write.table(samples_EUR, "/PHShome/bm363/ancestry_estimation/samples_EUR.txt", row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
+
+# SAS
+samples_SAS <- t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  full_join(aur_pheno2, by="IID") %>% 
+  filter(predtree=="SAS") %>% 
+  subset(select=c("FID","IID")) 
+
+write.table(samples_SAS, "/PHShome/bm363/ancestry_estimation/samples_SAS.txt", row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
+
+# EAS
+samples_EAS <- t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  full_join(aur_pheno2, by="IID") %>% 
+  filter(predtree=="EAS") %>% 
+  subset(select=c("FID","IID")) 
+
+write.table(samples_EAS, "/PHShome/bm363/ancestry_estimation/samples_EAS.txt", row.names = FALSE, col.names = FALSE, quote = FALSE, sep = "\t")
+```
+
+
+
