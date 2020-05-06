@@ -1,0 +1,373 @@
+---
+title: "B_AURORA_exploring_phenotype_data"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+date: "Jan. 21, 2020"
+---
+
+```{r}
+.libPaths( c( "/opt/R/3.6.2/lib/R/library" , .libPaths() ) )
+.libPaths()
+```
+
+
+```{r}
+library(tidyverse)
+
+library(readxl)
+require(data.table)
+```
+
+
+## load relevant datasets
+
+```{r}
+# phenotye and demographinc data
+aur_pheno <- read_delim("/data/humgen/guffantilab/AURORA/Aurora_Freeze2_PID/AURORA_Freeze_2_1.0.csv", col_names = TRUE, delim = ",")
+# genotyped samples
+aur_gen1 <- read_delim("/data/humgen/burook/data_raw/aur/au1.fam", col_names = FALSE, delim = " ")
+# a key that contains cross reference between the above two
+cross_ref1 <- read_excel("/data/humgen/burook/AURORA/Broad_PID_crossref.xlsx")
+
+# read the second sheet which contains the imputed phenotypes (particularly PDI) as well
+pheno_new1 <- read_excel("/data/humgen/burook/AURORA/Bio_PDI_Supplement.xlsx", sheet =2) 
+
+cross_ref2 <- cross_ref1[,c(5,6)]
+colnames(cross_ref2) <- c("FID", "PID")
+
+colnames(aur_gen1) <- c("FID","IID","p1","p2","gend","phen")
+
+# combine the pheno and geno data using the cross reference
+aur_pheno1 <- cross_ref2 %>% 
+  full_join(aur_pheno, by="PID") %>% 
+  full_join(aur_gen1, by="FID") %>% 
+  full_join(pheno_new1, by="PID") 
+
+
+write.table(aur_pheno1, "/data/humgen/burook/AURORA/aur_pheno1.txt", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
+
+```
+
+
+```{r}
+aur_pheno2 <- aur_pheno1 %>% 
+  filter(!is.na(FID)) %>% 
+  subset(select=c("FID", "IID", "PID", "ED_PDI_RS.x", "ED_GenderNow", "ED_Age", "BMI", "ED_Marital", "ED_RaceEthCode", "ED_HighestGrade", "M3_PCL5_RS", "M3_PCL5", "M3_PROM_Dep8b_T", "M3_PROM_Dep8b", "WK2_CTQSF_Total_RS", "ED_Event_BroadClass", "ED_Event_SpecificClass")) %>% 
+  mutate(EA4 = as.numeric(cut(WK2_CTQSF_Total_RS, breaks = c(0,10,12,14,16), right=T))) %>% 
+  print()
+
+```
+## PTSD diagnosis and severity score
+
+Total severity score based on a 20 item questionaire (resulting in a range 0 to 80). We used this score taken at 3 months follow-up survey.
+```{r}
+#pdf("/data/humgen/burook/AURORA/figures/hist_M3_PCL5_RS1.pdf", width=5.5, height=5)
+plot1 <- aur_pheno2 %>% 
+  filter(!is.na(M3_PCL5_RS)) %>% 
+ggplot(aes(M3_PCL5_RS)) + 
+  geom_histogram(aes(y =..density..),  
+                 col="darkgreen", 
+                 fill="navyblue", 
+                 alpha=.2, binwidth=0.05) + 
+  geom_vline(xintercept=28, linetype="dashed", color = "red") +
+  scale_x_log10() +
+  geom_density(col=1)
+plot1
+
+#dev.off()
+#plot1
+```
+
+A cut point of 28 (instead of 33 as usual or recommended?) was used to determine a binary diagnosis indicator variable. PTSD cases are those with a score of 28 or more.
+```{r}
+ggplot(data=aur_pheno2, aes(x=factor(M3_PCL5), y=M3_PCL5_RS)) + 
+  geom_boxplot() +
+  xlab("PTSD Diagnosis (M3_PCL5)") + ylab("PTSD Severity Score (M3_PCL5_RS)") +
+#  xlim("0","1") +       # show only cases and controls (exclude NA's)
+  coord_flip()
+```
+
+Let's briefly summarize some relevant survey scores for the PTSD cases and controls.
+```{r}
+aur_pheno2 %>% 
+  group_by(M3_PCL5) %>% 
+  summarise(
+            n=n(),
+            mean_PCL = mean(M3_PCL5_RS, na.rm = TRUE),
+            mean_CTQSF = mean(WK2_CTQSF_Total_RS, na.rm = TRUE),
+            mean_PROM_Dep = mean(M3_PROM_Dep8b_T, na.rm = TRUE)) %>% 
+  print()
+```
+Let's redo the above plot with number of cases and controls inserted
+```{r}
+#pdf("/data/humgen/burook/AURORA/figures/box_M3_PCL51.pdf", width=5.5, height=5)
+plot1 <- aur_pheno2 %>% 
+  ggplot(aes(x=factor(M3_PCL5), y=M3_PCL5_RS)) + 
+  geom_boxplot() +
+  scale_x_discrete(labels=c("Controls (n=461)", "Cases (n=348)", "NA (n=478)")) +
+  xlab("PTSD Diagnosis (M3_PCL5)") + ylab("PTSD Severity Score (M3_PCL5_RS)") +
+#  xlim("0","1") +       # show only cases and controls (exclude NA's)
+  coord_flip()
+plot1
+
+#dev.off()
+#plot1
+```
+
+## MDD diagnosis and severity score
+Total severity score based on PROMIS Depression - Short Form 8b (raw score range from 8 to 40). (Note that this raw score is not available.) This raw score is standardized to a T-score with a mean of 50 and standard deviation of 10 (resulting in a range 37.1-81.1). We used this score taken at 3 months follow-up survey.
+```{r}
+#pdf("/data/humgen/burook/AURORA/figures/hist_M3_PROM_Dep8b_T1.pdf", width=5.5, height=5)
+plot1 <- aur_pheno2 %>% 
+  ggplot(aes(M3_PROM_Dep8b_T)) + 
+  geom_histogram(aes(y =..density..), 
+                 col="darkgreen", 
+                 fill="navyblue", 
+                 alpha=.2, binwidth=1) + 
+  geom_vline(xintercept=60, linetype="dashed", color = "red") +
+  geom_density(col=1)
+plot1
+
+#dev.off()
+#plot1
+```
+
+A cut point of 60 of the T-score was used to determine a binary diagnosis indicator variable. Depression cases are those with a T-score of 60 or more.
+```{r}
+ggplot(data=aur_pheno2, aes(x=factor(M3_PROM_Dep8b), y=M3_PROM_Dep8b_T)) +
+  geom_boxplot() +
+  xlab("MDD Diagnosis (M3_PROM_Dep8b)") + ylab("Depressive Symptoms T-Score (M3_PROM_Dep8b_T)") +
+#  xlim("0","1") +       # show only cases and controls (exclude NA's)
+  coord_flip()
+```
+
+Let's briefly summarize some relevant survey scores for the MDD cases and controls.
+```{r}
+aur_pheno2 %>% 
+  group_by(M3_PROM_Dep8b) %>% 
+  summarise(
+            n=n(),
+            mean_PCL = mean(M3_PCL5_RS, na.rm = TRUE),
+            mean_CTQSF = mean(WK2_CTQSF_Total_RS, na.rm = TRUE),
+            mean_PROM_Dep = mean(M3_PROM_Dep8b_T, na.rm = TRUE)) %>% 
+  print()
+```
+
+Let's redo the above plot with number of cases and controls inserted
+```{r}
+#pdf("/data/humgen/burook/AURORA/figures/box_M3_PROM_Dep8b1.pdf", width=5.5, height=5)
+plot1 <- aur_pheno2 %>% 
+ggplot(aes(x=factor(M3_PROM_Dep8b), y=M3_PROM_Dep8b_T)) +
+  geom_boxplot() +
+  scale_x_discrete(labels=c("Controls (n=589)", "Cases (n=226)", "NA (n=472)")) +
+  xlab("MDD Diagnosis (M3_PROM_Dep8b)") + ylab("Depressive Symptoms T-Score (M3_PROM_Dep8b_T)") +
+#  xlim("0","1") +       # show only cases and controls (exclude NA's)
+  coord_flip()
+plot1
+
+#dev.off()
+#plot1
+```
+
+## Childhood trauma
+
+```{r}
+ggplot(data=aur_pheno2, aes(WK2_CTQSF_Total_RS)) + 
+  geom_histogram(aes(y =..density..),  
+                 col="red", 
+                 fill="green", 
+                 alpha=.2, binwidth=1) + 
+  geom_density(col=1) 
+
+```
+
+
+```{r}
+x=table(aur_pheno2[,c("M3_PCL5","EA4")])
+y <- x[c(2,1),]
+barplot(y)
+
+#par(mfrow=c(1, 1), mar=c(5, 5, 5, 10), xpd=TRUE)
+barplot(prop.table(y, margin = 2), beside=F, horiz=F,
+        col=c("red","steelblue"),
+        legend = rownames(y), legend.text = TRUE,
+        args.legend = list(x = "topright", bty = "n", inset=c(-0.25,0)),
+        cex.lab=1.5,
+        main = "Conditional probability of PTSD diagnosis",
+        ylab = "Proportion with PTSD",
+        xlab = "Education level",
+        names.arg = c("H.S. Diploma \n or less","A.A. Degree \n(2 yrs)","Bachelor's \n Degree (4 yrs)","Master's \n Degree or more"))
+
+```
+
+
+
+```{r}
+# NB:
+# standard errors = standard deviation/square root of number of samples
+# i.e., se=sd/sqrt(n)
+
+aur_pheno2 %>% 
+  mutate(PTSD_status = factor(M3_PCL5, labels = c("Controls","Cases"))) %>% 
+  filter(!is.na(PTSD_status)) %>% 
+  group_by(PTSD_status) %>% 
+  summarise(n=n(),
+            # PCL score
+            PCL_mean = mean(M3_PCL5_RS, na.rm = TRUE),
+            PCL_se = sd(M3_PCL5_RS, na.rm = TRUE)/sqrt(n()),
+            #Depressive symptom score
+            Dep_mean = mean(M3_PROM_Dep8b_T, na.rm = TRUE),
+            Dep_se = sd(M3_PROM_Dep8b_T, na.rm = TRUE)/sqrt(n()),
+            #Age
+            Age_mean = mean(ED_Age, na.rm = TRUE),
+            Age_se = sd(ED_Age, na.rm = TRUE)/sqrt(n()),
+            #BMI
+            BMI_mean = mean(BMI, na.rm = TRUE),
+            BMI_se = sd(BMI, na.rm = TRUE)/sqrt(n()),
+            #Childhood trauma score
+            CT_mean = mean(WK2_CTQSF_Total_RS, na.rm = TRUE),
+            CT_se = sd(WK2_CTQSF_Total_RS, na.rm = TRUE)/sqrt(n())) %>% 
+  print() 
+
+```
+
+
+```{r}
+# install necessary packages
+#install.packages("arsenal",  method = "curl", lib = "/PHShome/bm363/R/x86_64-pc-linux-gnu-library/3.6")
+#install.packages("Amisc",  method = "curl", lib = "/PHShome/bm363/R/x86_64-pc-linux-gnu-library/3.6")
+#install.packages("table1",  method = "curl", lib = "/PHShome/bm363/R/x86_64-pc-linux-gnu-library/3.6")
+# we can use this package if we need significance tests conducted
+library(arsenal)
+sum_tab1 <- tableby(M3_PCL5 ~ M3_PCL5_RS + M3_PROM_Dep8b_T + ED_Age + as.factor(ED_GenderNow) + BMI + ED_HighestGrade +  WK2_CTQSF_Total_RS, data=aur_pheno2, test=T);
+summary(sum_tab1)
+
+# 1=Hispanic, 2=White, 3=Black, 4=Asian, and 5=Asian/other
+# 1: Male; 2: Female; 3: Transgender; 4: Does not identify
+
+# a better lookong descriptive tables can be generated with the following package
+library(table1)
+tab_data1 <- aur_pheno2 %>% 
+  mutate(PTSD_status = factor(M3_PCL5, labels = c("Controls","Cases"))) %>% 
+  mutate(ED_GenderNow = factor(ED_GenderNow, labels = c("Male","Female", "Transgender"))) %>% 
+  mutate(Gender = factor(ED_GenderNow, labels = c("Male","Female", "Transgender"))) %>% 
+  mutate(ED_RaceEthCode = factor(ED_RaceEthCode, labels = c("Hispanic", "White", "Black", "Asian"))) %>% 
+  filter(!is.na(PTSD_status))
+
+label(tab_data1$M3_PCL5_RS) <- "PCL score"
+label(tab_data1$M3_PROM_Dep8b_T) <- "Depressive symptom T score"
+label(tab_data1$ED_Age) <- "Age"
+label(tab_data1$ED_GenderNow) <- "Gender"
+label(tab_data1$ED_RaceEthCode) <- "Race/Ethnicity"
+label(tab_data1$WK2_CTQSF_Total_RS) <- "Childhood trauma score"
+
+sum_tab2 <- table1(~ M3_PCL5_RS + M3_PROM_Dep8b_T + ED_Age + ED_GenderNow + BMI + ED_HighestGrade +  WK2_CTQSF_Total_RS + ED_RaceEthCode | PTSD_status, 
+                   data = tab_data1)#, overall = FALSE)
+sum_tab2
+
+
+```
+
+Descriptive stat table with MDD case and control
+
+```{r}
+
+# 1=Hispanic, 2=White, 3=Black, 4=Asian, and 5=Asian/other
+# 1: Male; 2: Female; 3: Transgender; 4: Does not identify
+
+# a better lookong descriptive tables can be generated with the following package
+library(table1)
+tab_data1 <- aur_pheno2 %>% 
+  mutate(MDD_status = factor(M3_PROM_Dep8b, labels = c("Controls","Cases"))) %>% 
+  mutate(ED_GenderNow = factor(ED_GenderNow, labels = c("Male","Female", "Transgender"))) %>% 
+  mutate(Gender = factor(ED_GenderNow, labels = c("Male","Female", "Transgender"))) %>% 
+  mutate(ED_RaceEthCode = factor(ED_RaceEthCode, labels = c("Hispanic", "White", "Black", "Asian"))) %>% 
+  filter(!is.na(MDD_status))
+
+label(tab_data1$M3_PCL5_RS) <- "PCL score"
+label(tab_data1$M3_PROM_Dep8b_T) <- "Depressive symptom T score"
+label(tab_data1$ED_Age) <- "Age"
+label(tab_data1$ED_GenderNow) <- "Gender"
+label(tab_data1$ED_RaceEthCode) <- "Race/Ethnicity"
+label(tab_data1$WK2_CTQSF_Total_RS) <- "Childhood trauma score"
+
+sum_tab2 <- table1(~ M3_PCL5_RS + M3_PROM_Dep8b_T + ED_Age + ED_GenderNow + BMI + ED_HighestGrade +  WK2_CTQSF_Total_RS + ED_RaceEthCode | MDD_status, 
+                   data = tab_data1)#, overall = FALSE)
+sum_tab2
+
+```
+
+```{r}
+# The PTSD diagnosis (M3_PCL5) is based on the score (M3_PCL5_RS). 
+# But we have samples with diagnosis but not score.
+aur_pheno2 %>% 
+  subset(select=c("M3_PCL5","M3_PCL5_RS")) %>% 
+  filter(is.na(M3_PCL5_RS)) %>% 
+  filter(!is.na(M3_PCL5)) %>% 
+  print()
+```
+
+Joint genotype IID and with phenotype label.
+
+```{r}
+aur_pheno3 <- cross_ref2 %>% 
+  full_join(pheno_new1, by="PID") %>% 
+  full_join(aur_gen1, by="FID") 
+
+aur_pheno3 %>% 
+  filter(!is.na(FID)) %>% 
+  group_by(ED_PDI) %>% 
+  summarise(
+    n=n(),
+#    mean_PCL = mean(ED_PDI_RS, na.rm = TRUE),
+    ) %>%
+  print()
+```
+
+Extract and save phenotype file for plink (to use with --make-pheno).
+
+```{r}
+tmp3<-aur_pheno3 %>% 
+  filter(!is.na(FID)) %>% 
+  subset(select=c("FID","IID","ED_PDI")) %>% 
+  print()
+
+#write.table(tmp3, "/data/humgen/burook/AURORA/ED_PDI.txt", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
+
+```
+
+
+```{r}
+
+aur_pheno2 %>% 
+  filter(!is.na(FID)) %>%   # consider only genotyped samples
+  group_by(M3_PCL5) %>%
+  summarise(n=n()) %>%
+  mutate(n_perc = 100*n / sum(n)) %>% 
+  print()
+
+aur_pheno2 %>% 
+  filter(!is.na(FID)) %>% 
+  group_by(M3_PCL5) %>% 
+  summarise(
+    n=n(),
+    mean_PCL = mean(M3_PCL5_RS, na.rm = TRUE),
+    mean_Dep8b_T = mean(M3_PROM_Dep8b_T, na.rm = TRUE)
+    ) %>%
+  print()
+
+aur_pheno2 %>% 
+  filter(!is.na(FID)) %>% 
+  group_by(M3_PCL5) %>% 
+  summarise(
+    q = list(quantile(M3_PCL5_RS, na.rm = TRUE))
+    ) %>%
+  unnest() %>% 
+  print()
+
+```
+
+
+
