@@ -1,0 +1,123 @@
+---
+title: "C_QC_and_imputation_of_genotype_data"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+date: "Jan. 20, 2020"
+---
+
+
+(This pipeline is run on Broad cluster on interactive mode. It is not run on this notebook.)
+
+## Preparing and preprocessing
+
+```{bash}
+# number of vcd files
+find /broad/mclean/genomics/aurora/RP-1194/ -type f -name '*.vcf.gz' | wc -l
+
+# copy the vcf files into one folder
+cd /broad/mclean/aurora_preprocess
+find /broad/mclean/genomics/aurora/RP-1194/ -type f -name ‘*.vcf.gz’ -exec cp -t /broad/mclean/aurora_preprocess/ {} +
+
+
+# for some strange reason, one sample's data is not being copied
+# see if there is an empty folder
+find /broad/mclean/genomics/aurora/RP-1194/ -type d -empty
+
+# a problematic sample (can't find genotype data)
+find /broad/mclean/genomics/aurora/RP-1194/ -type f -name ‘203013280159_R09C02*'
+# so, we had to copy-paste it manually
+cp /broad/mclean/genomics/aurora/RP-1194/1.189335598E9/203013280159_R09C02/v1/203013280159_R09C02.vcf.gz .
+
+```
+
+
+The first step is converting individual vcf files to bed files. Save the following in a file named tmp.sh and run it on terminal on interactive mode on a larger memory (ish -l h_vmem=32G -l h_rt=02:00:00).
+```{bash}
+#!/bin/sh                                                                                                           
+
+dir=/broad/mclean/aurora_preprocess/
+for file in `cd ${dir};ls -1 *.vcf.gz` ;do
+   plink --vcf $file --make-bed --double-id --out $file
+done
+```
+
+
+```{bash}
+# make a list of files
+#find . -type f -name '*bed' -or -name '*bim' -or -name ‘*fam’ >> file_list.txt
+# or simply,
+find . -type f -name '*.vcf.gz' >> file_list.txt
+
+# merge plink files into one 
+plink --bfile 203013280072_R02C02.vcf.gz --merge-list file_list.txt --make-bed --out ttt1
+
+# add pheno data to plink file
+plink --bfile ttt1 --make-pheno p1.list PTSD --make-bed --out ttt2
+
+# add reported gender to the plink file
+plink --bfile ttt2 --update-sex reportedGender --make-bed --out ttt3
+
+# update FID and IID
+plink --bfile ttt3 --update-ids recoded.txt --make-bed --out aurora1
+
+```
+
+Update ED_PDI as phenotype
+
+```{bash}
+use UGER
+ish -l h_vmem=32G -l h_rt=02:00:00
+cd /broad/mclean/aurora_rp_qc_imp_PDI/
+
+# let's update the phenotype with PDI diagnosis label
+plink --bfile ../aurora_preprocess/aurora1 --make-pheno ED_PDI.txt 1 --make-bed --out aurora3
+
+```
+
+
+## run the Ricopili pipeline on all samples together
+
+```{bash}
+# run the QC module
+preimp_dir --dis pts --pop mix --out aurora3 --sjamem_incr 16000
+
+# run the imputation module
+cd qc/imputation
+impute_dirsub --refdir /psych/genetics_data/ripke/1000Genomes_reference/1KG_Oct14/1000GP_Phase3_sr_0517d --out aurora3 --sjamem_incr 16000
+
+# run the pca module
+cd pcaer_sub
+pcaer --prefercase --preferfam --out cobg_gw.aurora3 pts_aurora3_mix_bm-qc1.hg19.ch.fl.bgs
+```
+
+## run the Ricopili pipeline - on ancestry stratified samples
+
+We prepared ancestry stratified samples on erisone (into AFR, EUR, SAS, EAS) using 1000 Genome data (see notebook A).
+```{bash}
+use PLINK
+cd /broad/mclean/aurora_rp_qc_imp_PDI/
+mkdir afr
+cd afr
+plink --bfile ../all/aurora3 --keep samples_AFR.txt --make-bed --out pts_aurora3_AFR
+
+preimp_dir --dis pts --pop afr --out aurora3_afr --sjamem_incr 16000
+cd qc/imputation
+impute_dirsub --refdir /psych/genetics_data/ripke/1000Genomes_reference/1KG_Oct14/1000GP_Phase3_sr_0517d --popname afr --out aurora3_afr --sjamem_incr 16000
+cd pcaer_sub
+pcaer --prefercase --preferfam --out cobg_gw.aurora3_afr pts_aurora3afr_afr_bm-qc1.hg19.ch.fl.bgs
+
+cd /broad/mclean/aurora_rp_qc_imp_PDI/
+mkdir nonafr
+cd nonafr
+plink --bfile ../all/aurora3 --remove ../afr/samples_AFR.txt --make-bed --out pts_aurora3_nonAFR
+
+preimp_dir --dis pts --pop eur --out aurora3_nonafr --sjamem_incr 16000
+cd qc/imputation
+impute_dirsub --refdir /psych/genetics_data/ripke/1000Genomes_reference/1KG_Oct14/1000GP_Phase3_sr_0517d --out aurora3_nonafr --sjamem_incr 16000
+cd pcaer_sub
+pcaer --prefercase --preferfam --out cobg_gw.aurora3_nonafr pts_aurora3nonAFR_eur_bm-qc1.hg19.ch.fl.bgs
+
+```
+
