@@ -1,0 +1,84 @@
+---
+title: "D_PRS_computation_and_analysis"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+date: "May 5, 2020"
+---
+
+
+```{r}
+.libPaths( c( "/opt/R/3.6.2/lib/R/library" , .libPaths() ) )
+.libPaths()
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+
+# Computing PRS with  PRSice
+
+## PTSD-PRS
+
+Prepare PTSD pheno file for PRSice
+
+```{r}
+fam_file <- read_delim("/data/humgen/burook/data_raw/sb/pts_sb1_mix_bm-qc1.hg19.ch.fl.bg.fam", col_names = FALSE, delim = " ");
+PTSD_clinical <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t");
+
+
+PTSD_status2 <- PTSD_clinical %>% 
+  mutate(status = "-") %>% 
+  mutate(status = replace(status, PTSD_status=="Negative", 0)) %>% 
+  mutate(status = replace(status, PTSD_status=="Positive", 1)) %>% 
+  filter(status!="-") %>% 
+  subset(select=c("ID","status")) %>% 
+  print()
+write.table(PTSD_status2, "/data/humgen/burook/SysBio_analysis/sb_ptsd/pheno_file_status2", row.names = FALSE, col.names = FALSE, quote = FALSE)
+```
+
+
+```{bash}
+cd /data/humgen/burook/SysBio_analysis/sb_ptsd/
+
+/PHShome/bm363/bin/plink2 \
+  --bfile /data/humgen/burook/data_imputed/sb/cobg_dir_genome_wide/pts_sb1_mix_bm-qc1.hg19.ch.fl.bgn \
+  --maf 0.01 \
+  --geno 0.01 \
+  --mind 0.1 \
+  --hwe 0.001 \
+  --make-bed \
+  --out tmp_sb1
+```
+
+```{bash}
+# format the sum data for PRSice
+head /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results
+sort -k 2,2 -r -u pts_eur_freeze2_overall.results > pts_eur_freeze2_overall.results.exDupVar
+```
+
+Run PRSice with freeze-2 data
+```{bash}
+# with freeze-2 PGC-PTSD summ stats
+R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
+  plink /PHShome/bm363/bin/plink2 \
+  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results.exDupVar \
+  target /data/humgen/burook/SysBio_analysis/sb_ptsd/tmp_sb1 \
+  pheno.file /data/humgen/burook/SysBio_analysis/sb_ptsd/pheno_file_status2 \
+  binary.target T \
+  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
+  clump.snps T \
+  prune.snps F \
+  quantiles T \
+  figname sb_ptsd \
+  wd /data/humgen/burook/SysBio_analysis/sb_ptsd/
+```
+
+```{bash}
+ls /data/humgen/burook/SysBio_analysis/sb_ptsd/
+
+```
+

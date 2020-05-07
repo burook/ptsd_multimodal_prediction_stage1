@@ -8,10 +8,8 @@ date: "Feb. 20, 2020"
 ---
 
 
-
 ```{r}
 library(tidyverse)
-
 library(readxl)
 ```
 
