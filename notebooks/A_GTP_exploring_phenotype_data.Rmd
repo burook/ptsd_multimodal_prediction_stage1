@@ -19,9 +19,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
-
 library(readxl)
-require(data.table)
 ```
 
 
@@ -38,8 +36,7 @@ GTP_pheno2 <- read_delim("/data/humgen/GTP_genomics/PLINK/input/pheno/Masterdata
 ```{r}
 GTP_pheno3 <- read_excel("/data/humgen/GTP_genomics/PLINK/input/pheno/ResslerData_cleaned_reduced_For Machine Learning_withSIDs.xlsx", sheet = 1) %>% 
   print() 
-```
-```{r}
+
 GTP_pheno3 %>% 
 #  count(sex)
 #  count(PTSD_diagnosis)
@@ -136,9 +133,10 @@ GTP_fam1 <- read_delim("/data/humgen/GTP_genomics/PLINK/input/PGC_GTP_June2017/G
 
 GTP_pheno4 <- GTP_pheno3 %>% 
   mutate(sid = as.character(sid)) %>% 
-  inner_join(GTP_fam1, by=c("sid"="ID")) 
+  inner_join(GTP_fam1, by=c("sid"="ID")) %>% 
+  print()
 
-write.table(GTP_pheno4, "/data/humgen/burook/GTP_analysis/GTP_pheno1.txt", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
+#write.table(GTP_pheno4, "/data/humgen/burook/GTP_analysis/GTP_pheno1.txt", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
 
 ```
 
@@ -151,7 +149,7 @@ GTP_race2 <- GTP_pheno4 %>%
   subset(select=c("IID","race_ethnic")) %>% 
   rename(Ethnicity_race=race_ethnic)
 
-write.table(GTP_race2, "/data/humgen/burook/GTP_analysis/GTP_race2.txt", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
+#write.table(GTP_race2, "/data/humgen/burook/GTP_analysis/GTP_race2.txt", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
 
 ```
 
@@ -159,6 +157,18 @@ write.table(GTP_race2, "/data/humgen/burook/GTP_analysis/GTP_race2.txt", row.nam
 cd /data/humgen/burook/GTP_analysis/
 Rscript /data/humgen/burook/AURORA/notebooks/ancestry_prediction_svmandtree.R /data/humgen/GTP_genomics/PLINK/input/PGC_GTP_June2017/GTPC/qc/pts_gtpc_mix_am-qc /data/humgen/burook/GTP_analysis/GTP_race2.txt
 
+```
+
+
+```{r}
+t1 <- read_delim("/data/humgen/burook/GTP_analysis/table_pred", col_names = TRUE, delim = " ")
+
+t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  group_by(predtree) %>%
+  summarise(n=n()) %>%
+  mutate(n_perc = 100*n / sum(n)) %>% 
+  print()
 ```
 
 
@@ -173,6 +183,7 @@ target_race <- read_delim("/data/humgen/burook/GTP_analysis/GTP_race2.txt", col_
    print()
 
 ```
+
 
 ## Computing PRS
 
@@ -207,5 +218,9 @@ R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
   wd /data/humgen/burook/GTP_analysis/gtp_ptsd/
 ```
 
-
+```{bash}
+rm /data/humgen/burook/GTP_analysis/gtp_ptsd/rawfile.raw
+ls /data/humgen/burook/GTP_analysis/gtp_ptsd/
+#head /data/humgen/burook/GTP_analysis/GTP_pheno1.txt
+```
 

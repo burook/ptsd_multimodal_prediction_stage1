@@ -20,9 +20,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
-
 library(readxl)
-require(data.table)
 ```
 
 ### Preparing the reference data
@@ -79,49 +77,6 @@ target_race <- read_delim("/PHShome/bm363/ancestry_estimation/fc_race2.txt", col
    table() %>% 
    print()
 
-```
-
-```{bash}
-cd /data/humgen/burook/FC_analysis/fc_ptsd
-
-/PHShome/bm363/bin/plink2 \
-  --bfile /data/humgen/burook/data_imputed/fc/cobg_dir_genome_wide/pts_fc1_mix_bm-qc1.hg19.ch.fl.bgn \
-  --maf 0.01 \
-  --geno 0.01 \
-  --mind 0.1 \
-  --hwe 0.001 \
-  --make-bed \
-  --out tmp_fc1
-
-```
-
-let's prepare the pheno file for PRScise
-```{r}
-pheno_file_status <- read_delim("/data/humgen/burook/FC_analysis/fc_ptsd/pheno_file_status", col_names = TRUE, delim = "\t") %>% 
-  filter(!is.na(ID)) %>% 
-  filter(!is.na(PTSD_status)) %>% 
-  mutate(ID = paste("STET-",ID,sep = "")) %>% 
-  mutate(PTSD_status = PTSD_status-1)
-
-write.table(pheno_file_status, "/data/humgen/burook/FC_analysis/fc_ptsd/pheno_file_status2", row.names = FALSE, col.names = FALSE, quote = FALSE)
-
-```
-
-
-```{bash}
-# with freeze-2 PGC-PTSD summ stats
-R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
-  plink /PHShome/bm363/bin/plink2 \
-  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results.exDupVar \
-  target /data/humgen/burook/FC_analysis/fc_ptsd/tmp_fc1 \
-  pheno.file /data/humgen/burook/FC_analysis/fc_ptsd/pheno_file_status2 \
-  binary.target T \
-  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
-  clump.snps T \
-  prune.snps F \
-  quantiles T \
-  figname fc_ptsd \
-  wd /data/humgen/burook/FC_analysis/fc_ptsd/
 ```
 
 
