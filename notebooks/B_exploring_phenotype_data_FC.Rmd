@@ -1,0 +1,78 @@
+---
+title: "A_GTP_exploring_phenotype_data"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+date: "May 8, 2020"
+---
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, echo=FALSE}
+.libPaths( c( "/opt/R/3.6.2/lib/R/library" , .libPaths() ) )
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+
+## load datasets
+
+```{r}
+# Ft. Campbell pheno data
+t1 <- read_delim("/data/humgen/burook/FC_analysis/table_pred", col_names = TRUE, delim = " ") 
+fc_pheno1 <- read_delim("/data/humgen/burook/data_raw/fc/clinical/FC_data_for_PGM.txt", col_names = TRUE, delim = "\t") %>% 
+  mutate(ID=as.character(ID)) %>% 
+  inner_join(t1, by=c("ID"="Sample")) %>% 
+  print()
+```
+
+```{r}
+fc_pheno1 %>% 
+  count(Ethnicity_race)
+```
+
+```{r}
+# clean up data for demo table
+tab_data1 <- fc_pheno1 %>% 
+  mutate(PTSD_status = factor(PTSD_status, labels = c("Controls","Cases"))) %>% 
+  filter(!is.na(PTSD_status))
+
+# we can use this package if we need significance tests conducted
+library(arsenal)
+
+sum_tab1 <- tableby(PTSD_status ~ PCL_score + T3_AGE + as.factor(GENDER) + EDUCATION_LEVEL + CTQ_total_abuse_score + as.factor(predtree), data=tab_data1, test=T)
+summary(sum_tab1)
+
+
+# a better lookong descriptive tables can be generated with the following package
+library(table1)
+label(tab_data1$PTSD_status) <- "PTSD Diagnosis"
+label(tab_data1$T3_AGE) <- "Age"
+label(tab_data1$GENDER) <- "Sex"
+label(tab_data1$predtree) <- "Race/Ethnicity"
+label(tab_data1$CTQ_total_abuse_score) <- "Childhood trauma score"
+
+sum_tab2 <- table1(~ PCL_score + T3_AGE + as.factor(GENDER) + EDUCATION_LEVEL + CTQ_total_abuse_score + as.factor(predtree) | PTSD_status, 
+                   data = tab_data1)#, overall = FALSE)
+sum_tab2
+```
+
+
+```{r}
+fc_pheno2 <- fc_pheno1 %>% 
+  subset(select=c("PTSD_status", "CTQ_total_abuse_score","EDUCATION_LEVEL")) %>% 
+  mutate(CA4 = cut(CTQ_total_abuse_score, breaks = c(-Inf,20,30,40,Inf), right=T, labels = F)) %>%
+  mutate(EA4 = cut(EDUCATION_LEVEL, breaks = c(-Inf,2,3,4,Inf), right=T, labels = F)) 
+#, labels=c("low","midlow","midhigh","high")
+
+fc_pheno2 %>% print()
+```
+
+
