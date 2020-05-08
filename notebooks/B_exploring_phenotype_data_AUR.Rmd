@@ -15,9 +15,7 @@ date: "Jan. 21, 2020"
 
 ```{r}
 library(tidyverse)
-
 library(readxl)
-require(data.table)
 ```
 
 
@@ -50,15 +48,24 @@ write.table(aur_pheno1, "/data/humgen/burook/AURORA/aur_pheno1.txt", row.names =
 
 ```
 
+```{r}
+# AURORA data
+t1 <- read_delim("/data/humgen/burook/AURORA/table_pred", col_names = TRUE, delim = " ")
+aur_pheno1 <- read_delim("/data/humgen/burook/AURORA/aur_pheno1.txt", col_names = TRUE, delim = "\t") %>% 
+  mutate(IID=as.character(IID)) %>% 
+  inner_join(t1, by=c("IID"="Sample")) 
+```
 
+
+A subset of phenotype with the most relevant phenotypes.
 ```{r}
 aur_pheno2 <- aur_pheno1 %>% 
   filter(!is.na(FID)) %>% 
   subset(select=c("FID", "IID", "PID", "ED_PDI_RS.x", "ED_GenderNow", "ED_Age", "BMI", "ED_Marital", "ED_RaceEthCode", "ED_HighestGrade", "M3_PCL5_RS", "M3_PCL5", "M3_PROM_Dep8b_T", "M3_PROM_Dep8b", "WK2_CTQSF_Total_RS", "ED_Event_BroadClass", "ED_Event_SpecificClass")) %>% 
   mutate(EA4 = as.numeric(cut(WK2_CTQSF_Total_RS, breaks = c(0,10,12,14,16), right=T))) %>% 
   print()
-
 ```
+
 ## PTSD diagnosis and severity score
 
 Total severity score based on a 20 item questionaire (resulting in a range 0 to 80). We used this score taken at 3 months follow-up survey.
@@ -100,6 +107,7 @@ aur_pheno2 %>%
             mean_PROM_Dep = mean(M3_PROM_Dep8b_T, na.rm = TRUE)) %>% 
   print()
 ```
+
 Let's redo the above plot with number of cases and controls inserted
 ```{r}
 #pdf("/data/humgen/burook/AURORA/figures/box_M3_PCL51.pdf", width=5.5, height=5)
@@ -302,6 +310,7 @@ sum_tab2
 ```{r}
 # The PTSD diagnosis (M3_PCL5) is based on the score (M3_PCL5_RS). 
 # But we have samples with diagnosis but not score.
+# ASK AURORA PEOPLE FOR CLARIFICATION.
 aur_pheno2 %>% 
   subset(select=c("M3_PCL5","M3_PCL5_RS")) %>% 
   filter(is.na(M3_PCL5_RS)) %>% 
@@ -309,65 +318,7 @@ aur_pheno2 %>%
   print()
 ```
 
-Joint genotype IID and with phenotype label.
 
-```{r}
-aur_pheno3 <- cross_ref2 %>% 
-  full_join(pheno_new1, by="PID") %>% 
-  full_join(aur_gen1, by="FID") 
-
-aur_pheno3 %>% 
-  filter(!is.na(FID)) %>% 
-  group_by(ED_PDI) %>% 
-  summarise(
-    n=n(),
-#    mean_PCL = mean(ED_PDI_RS, na.rm = TRUE),
-    ) %>%
-  print()
-```
-
-Extract and save phenotype file for plink (to use with --make-pheno).
-
-```{r}
-tmp3<-aur_pheno3 %>% 
-  filter(!is.na(FID)) %>% 
-  subset(select=c("FID","IID","ED_PDI")) %>% 
-  print()
-
-#write.table(tmp3, "/data/humgen/burook/AURORA/ED_PDI.txt", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
-
-```
-
-
-```{r}
-
-aur_pheno2 %>% 
-  filter(!is.na(FID)) %>%   # consider only genotyped samples
-  group_by(M3_PCL5) %>%
-  summarise(n=n()) %>%
-  mutate(n_perc = 100*n / sum(n)) %>% 
-  print()
-
-aur_pheno2 %>% 
-  filter(!is.na(FID)) %>% 
-  group_by(M3_PCL5) %>% 
-  summarise(
-    n=n(),
-    mean_PCL = mean(M3_PCL5_RS, na.rm = TRUE),
-    mean_Dep8b_T = mean(M3_PROM_Dep8b_T, na.rm = TRUE)
-    ) %>%
-  print()
-
-aur_pheno2 %>% 
-  filter(!is.na(FID)) %>% 
-  group_by(M3_PCL5) %>% 
-  summarise(
-    q = list(quantile(M3_PCL5_RS, na.rm = TRUE))
-    ) %>%
-  unnest() %>% 
-  print()
-
-```
 
 
 
