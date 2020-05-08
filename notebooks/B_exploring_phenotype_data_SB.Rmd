@@ -1,0 +1,76 @@
+---
+title: "A_GTP_exploring_phenotype_data"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+date: "May 8, 2020"
+---
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, echo=FALSE}
+.libPaths( c( "/opt/R/3.6.2/lib/R/library" , .libPaths() ) )
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+
+## load datasets
+
+```{r}
+# SysBio pheno data
+t1 <- read_delim("/data/humgen/burook/SysBio_analysis/table_pred", col_names = TRUE, delim = " ")
+sb_pheno1 <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t") %>%
+  mutate(ID=as.character(ID)) %>% 
+  inner_join(t1, by=c("ID"="Sample"))
+sb_pheno1 %>% print()
+```
+
+
+```{r}
+# clean up data for demo table
+tab_data1 <- sb_pheno1 %>% 
+  mutate(PTSD_status = na_if(PTSD_status,"Sub_threshold")) %>% 
+  mutate(PTSD_status = factor(PTSD_status, labels = c("Controls","Cases"))) %>% 
+  filter(!is.na(PTSD_status))
+
+# we can use this package if we need significance tests conducted
+library(arsenal)
+
+sum_tab1 <- tableby(PTSD_status ~ CAPSTOT_cur + BDI_total + as.factor(BDI_cut18) + DemoAge + as.factor(DemoGend) + DemoEdu + ETISR_Total + as.factor(Eth_race), data=tab_data1, test=T)
+summary(sum_tab1)
+
+
+# a better lookong descriptive tables can be generated with the following package
+library(table1)
+label(tab_data1$PTSD_status) <- "PTSD Diagnosis"
+label(tab_data1$DemoAge) <- "Age"
+label(tab_data1$DemoGend) <- "Sex"
+label(tab_data1$Eth_race) <- "Race/Ethnicity"
+label(tab_data1$ETISR_Total) <- "Childhood trauma score"
+
+sum_tab2 <- table1(~ CAPSTOT_cur + BDI_total + DemoAge + as.factor(DemoGend) + DemoEdu + ETISR_Total + as.factor(Eth_race) | PTSD_status, 
+                   data = tab_data1)#, overall = FALSE)
+sum_tab2
+```
+
+
+```{r}
+sb_pheno2 <- sb_pheno1 %>% 
+  subset(select=c("PTSD_status", "ETISR_Total","DemoEdu")) %>% 
+  mutate(CA4 = cut(ETISR_Total, breaks = c(-Inf,5,10,15,Inf), right=T, labels = F)) %>%
+  mutate(EA4 = cut(DemoEdu, breaks = c(-Inf,2,3,4,Inf), right=T, labels = F)) 
+#, labels=c("low","midlow","midhigh","high")
+
+sb_pheno2 %>% print()
+```
+
+
+
