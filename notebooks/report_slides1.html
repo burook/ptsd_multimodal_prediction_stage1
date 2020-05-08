@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>A step towards a robust multi-modal risk prediction model</title>
+  <title>A step towards a robust multi-modal risk prediction model of PTSD</title>
 
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="chrome=1">
@@ -19,8 +19,8 @@
     var SLIDE_CONFIG = {
       // Slide settings
       settings: {
-                title: 'A step towards a robust multi-modal risk prediction model',
-                        subtitle: 'Incorporating genetic score with other pre-trauma risk factors of post-traumatic stress disorder',
+                title: 'A step towards a robust multi-modal risk prediction model of PTSD',
+                        subtitle: 'Incorporating genetic score with other pre-trauma risk factors',
                 useBuilds: true,
         usePrettify: true,
         enableSlideAreas: true,
@@ -30,7 +30,15 @@
       // Author information
       presenters: [
             {
-        name:  'Meeting venue Harvard/McLean' ,
+        name:  'Meeting venue' ,
+        company: '',
+        gplus: '',
+        twitter: '',
+        www: '',
+        github: ''
+      },
+            {
+        name:  'Harvard/McLean' ,
         company: '',
         gplus: '',
         twitter: '',
@@ -3125,6 +3133,12 @@ slide:not(.current) .plotly.html-widget{
           </hgroup>
   </slide>
 
+<style type="text/css">
+slides > slide:not(.nobackground):after {
+  content: '';
+}
+</style>
+
 <slide class="segue dark nobackground level1"><hgroup class = 'auto-fadein'><h2>Background and Motivation</h2></hgroup><article  id="background-and-motivation">
 
 </article></slide><slide class=""><hgroup><h2>Why PTSD biomarker?</h2></hgroup><article  id="why-ptsd-biomarker">
@@ -3136,7 +3150,7 @@ slide:not(.current) .plotly.html-widget{
 <li>Understanding how these risk and resilience factors play out to determine PTSD outcomes is crucial for planning preventative strategies and for developing early diagnostic tools and therapeutic interventions.</li>
 </ul>
 
-</article></slide><slide class=""><hgroup><h2>Two main approaches </h2><h3> our road maps</h3></hgroup><article  id="two-main-approaches-our-road-maps">
+</article></slide><slide class=""><hgroup><h2>Two main approaches / road maps</h2></hgroup><article  id="two-main-approaches-road-maps">
 
 <ul>
 <li>Previously we started with 1M heterogenous features and selected down to a 17 multi-omic marker panel [CITE].</li>
@@ -3214,29 +3228,22 @@ slide:not(.current) .plotly.html-widget{
 <td align="left">PCL</td>
 </tr>
 <tr class="odd">
-<td align="left">%cases (N)</td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
+<td align="left">Age: mean (sd)</td>
+<td align="left">33.32 (8.25)</td>
+<td align="left">27.75 (6.25)</td>
+<td align="left">42.68 (153.22)</td>
+<td align="left">35.46 (13.11)</td>
 </tr>
 <tr class="even">
-<td align="left">%female(N)</td>
+<td align="left">BMI: mean (sd)</td>
+<td align="left">28.22 (6.12)</td>
+<td align="left">27.47 (3.7)</td>
 <td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">Age: mean (sd)</td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
+<td align="left">30.31 (8.67)</td>
 </tr>
 </table>
 
-</article></slide><slide class=""><hgroup><h2>Datasets</h2></hgroup><article  id="datasets">
+</article></slide><slide class=""><hgroup><h2>Cohorts Description </h2><h3> differ in ancestry and gender composition, case prevalence</h3></hgroup><article  id="cohorts-description-differ-in-ancestry-and-gender-composition-case-prevalence">
 
 <table class = 'rmdtable'>
 <tr class="header">

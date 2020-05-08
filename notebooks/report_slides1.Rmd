@@ -1,6 +1,6 @@
 ---
-title: "A step towards a robust multi-modal risk prediction model" 
-subtitle: "Incorporating genetic score with other pre-trauma risk factors of post-traumatic stress disorder"
+title: "A step towards a robust multi-modal risk prediction model of PTSD"
+subtitle: "Incorporating genetic score with other pre-trauma risk factors"
 author:
   - Meeting venue
   - Harvard/McLean
@@ -8,8 +8,14 @@ date: May 2020
 output:
   ioslides_presentation:
     transition: slower
-
 ---
+
+<!-- The following removes page numbers on slides. -->
+<style type="text/css">
+slides > slide:not(.nobackground):after {
+  content: '';
+}
+</style>
 
 
 ```{r setup, include=FALSE}
@@ -27,7 +33,7 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE,  message=FALSE)
 - Understanding how these risk and resilience factors play out to determine PTSD outcomes is crucial for planning preventative strategies and for developing early diagnostic tools and therapeutic interventions.
 
 
-## Two main approaches | our road maps
+## Two main approaches / road maps
 
 - Previously we started with 1M heterogenous features and selected down to a 17 multi-omic marker panel [CITE]. 
 - But this purely data-driven approach is limited by lack of sufficient sample size for a robust predictive model. 
@@ -104,8 +110,10 @@ aur_pheno1 <- read_delim("/data/humgen/burook/AURORA/aur_pheno1.txt", col_names 
 
 
 
-
 ## Cohorts Description 
+```{r}
+muSd <- function(x, d) paste(round(mean(x,na.rm = T),d), " (", round(sd(x,na.rm = T),d), ")", sep = "")
+```
 
 | Dataset | SysBio | Ft. Campbell | GTP | AURORA | 
 |---------------|---------------|---------------|---------------|---------------|
@@ -113,13 +121,13 @@ aur_pheno1 <- read_delim("/data/humgen/burook/AURORA/aur_pheno1.txt", col_names 
 | n      | `r nrow(sb_pheno1)` | `r nrow(fc_pheno1)` |  `r nrow(gtp_pheno1)` | `r nrow(aur_pheno1)`  |
 | Population      | Veterans from Marines, Navy, Army and the Air Force | Active-duty Army personnel | Civilian recruited from primary care waiting room | Civilian recruited at emergency room |
 | Diagnosis Score      | CAPS | PCL | PTSS | PCL |
-| %cases (N) | | | | |
-| %female(N) | | | | |
-| Age: mean (sd) | | | | |
+| Age: mean (sd) | `r muSd(sb_pheno1$DemoAge,2)` | `r muSd(fc_pheno1$T3_AGE,2)` | `r muSd(gtp_pheno1$age,2)` | `r muSd(aur_pheno1$ED_Age,2)` |
+| BMI: mean (sd) | `r muSd(sb_pheno1$BMI,2)` | `r muSd(fc_pheno1$BMI,2)` |  | `r muSd(aur_pheno1$BMI,2)` |
 
 
 
-## Datasets
+
+## Cohorts Description | differ in ancestry and gender composition, case prevalence
 
 | SysBio   | Ft. Campbell | GTP    | AURORA |
 |---------------|---------------|---------------|---------------|
