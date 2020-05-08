@@ -14,7 +14,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r, echo=FALSE}
 .libPaths( c( "/opt/R/3.6.2/lib/R/library" , .libPaths() ) )
-.libPaths()
 ```
 
 ```{r}
@@ -44,6 +43,13 @@ GTP_pheno3 %>%
 
 ```
 
+Now let's focus on samples with genotype data.
+```{r}
+# GTP pheno data
+t1 <- read_delim("/data/humgen/burook/GTP_analysis/table_pred", col_names = TRUE, delim = " ") 
+gtp_pheno1 <- read_delim("/data/humgen/burook/GTP_analysis/GTP_pheno1.txt", col_names = TRUE, delim = "\t") %>% 
+  inner_join(t1, by=c("IID"="Sample")) 
+```
 
 ```{r}
 # install necessary packages
@@ -52,7 +58,7 @@ GTP_pheno3 %>%
 #install.packages("table1",  method = "curl", lib = "/PHShome/bm363/R/x86_64-pc-linux-gnu-library/3.6")
 
 # clean up data for demo table
-tab_data1 <- GTP_pheno3 %>% 
+tab_data1 <- gtp_pheno1 %>% 
   mutate(PTSD_diagnosis = na_if(na_if(PTSD_diagnosis,"2092"),"7011")) %>% 
   mutate(PTSD_diagnosis = factor(PTSD_diagnosis, labels = c("Controls","Cases"))) %>% 
   filter(!is.na(PTSD_diagnosis))
@@ -84,19 +90,20 @@ sum_tab2
 
 
 ```{r}
-GTP_pheno4 <- GTP_pheno3 %>% 
+gtp_pheno2 <- gtp_pheno1 %>% 
 #  filter(!is.na(PTSD_status)) %>% 
 #  filter(PTSD_status<125) %>% 
   subset(select=c("PTSD_diagnosis", "CTQTOT","education")) %>% 
-  mutate(CA4 = cut(CTQTOT, breaks = c(-Inf,40,60,80,Inf), right=T)) %>%
-  mutate(EA4 = cut(education, breaks = c(-Inf,1,3,4,Inf), right=T)) 
+  mutate(CA4 = cut(CTQTOT, breaks = c(-Inf,40,60,80,Inf), right=T,labels = F)) %>%
+  mutate(EA4 = cut(education, breaks = c(-Inf,1,3,4,Inf), right=T,labels = F)) 
 
-GTP_pheno4 %>% print()
+gtp_pheno2 %>% print()
 #, labels=c("low","midlow","midhigh","high")
+
 ```
 
 ```{r}
-x=table(GTP_pheno4[,c("PTSD_diagnosis","CA4")])
+x=table(gtp_pheno2[,c("PTSD_diagnosis","EA4")])
 y <- x[c(2,1),]
 barplot(y)
 
@@ -113,5 +120,20 @@ barplot(prop.table(y, margin = 2), beside=F, horiz=F,
 
 ```
 
+```{r}
+x=table(gtp_pheno2[,c("PTSD_diagnosis","CA4")])
+y <- x[c(2,1),]
+barplot(y)
 
+#par(mfrow=c(1, 1), mar=c(5, 5, 5, 10), xpd=TRUE)
+barplot(prop.table(y, margin = 2), beside=F, horiz=F,
+        col=c("red","steelblue"),
+        legend = rownames(y), legend.text = TRUE,
+        args.legend = list(x = "topright", bty = "n", inset=c(-0.25,0)),
+        cex.lab=1.5,
+        main = "Conditional probability of PTSD diagnosis",
+        ylab = "Proportion with PTSD",
+        xlab = "Childhood Adversity")
+
+```
 
