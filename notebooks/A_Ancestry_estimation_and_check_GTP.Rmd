@@ -1,0 +1,101 @@
+---
+title: "Ancestry estimation and check"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+date: "April 18, 2020"
+---
+
+```{r}
+.libPaths( c( "/opt/R/3.6.2/lib/R/library" , .libPaths() ) )
+.libPaths()
+```
+
+```{r}
+library(tidyverse)
+
+library(readxl)
+```
+
+### Preparing the reference data
+
+The 1000 genome data has been prepocessed (including thinning) already. 
+
+
+## Ancestry estimation with PCA
+
+
+## Genotype data 
+
+```{bash}
+# Number of variants and samples
+wc -l /data/humgen/GTP_genomics/PLINK/input/PGC_GTP_June2017/GTPC/qc/pts_gtpc_mix_am-qc.{bim,fam}
+
+# an alternative geno data file location (befoe QC with) with slightly more samples and variants
+wc -l /data/humgen/GTP_genomics/PLINK/input/PGC_GTP_June2017/GTPC/starting_data/Adam_final_GTP_pheno.{bim,fam}
+```
+
+
+```{r}
+GTP_fam1 <- read_delim("/data/humgen/GTP_genomics/PLINK/input/PGC_GTP_June2017/GTPC/qc/pts_gtpc_mix_am-qc.fam",
+                         col_names = F, delim = "\t") %>% 
+  rename_all(funs(c("FID","IID","p1","p2","gend","phen"))) %>% 
+  mutate(ID = str_replace(IID,"PTSD_",""))
+
+GTP_pheno4 <- GTP_pheno3 %>% 
+  mutate(sid = as.character(sid)) %>% 
+  inner_join(GTP_fam1, by=c("sid"="ID")) %>% 
+  print()
+
+#write.table(GTP_pheno4, "/data/humgen/burook/GTP_analysis/GTP_pheno1.txt", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
+
+```
+
+
+## Ancestry estimation and confirmation
+
+Prepare a file with self-identified race.
+```{r}
+GTP_race2 <- GTP_pheno4 %>% 
+  subset(select=c("IID","race_ethnic")) %>% 
+  rename(Ethnicity_race=race_ethnic)
+
+#write.table(GTP_race2, "/data/humgen/burook/GTP_analysis/GTP_race2.txt", row.names = FALSE, col.names = TRUE, quote = FALSE, sep = "\t")
+
+```
+
+```{bash}
+cd /data/humgen/burook/GTP_analysis/
+Rscript /data/humgen/burook/AURORA/notebooks/ancestry_prediction_svmandtree.R /data/humgen/GTP_genomics/PLINK/input/PGC_GTP_June2017/GTPC/qc/pts_gtpc_mix_am-qc /data/humgen/burook/GTP_analysis/GTP_race2.txt
+
+```
+
+
+```{r}
+t1 <- read_delim("/data/humgen/burook/GTP_analysis/table_pred", col_names = TRUE, delim = " ")
+
+t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  group_by(predtree) %>%
+  summarise(n=n()) %>%
+  mutate(n_perc = 100*n / sum(n)) %>% 
+  print()
+```
+
+
+```{r}
+target_race <- read_delim("/data/humgen/burook/GTP_analysis/GTP_race2.txt", col_names = TRUE, delim = "\t")
+
+ t1 %>% 
+   left_join(target_race, by=c("Sample"="IID")) %>% 
+   filter(!is.na(Ethnicity_race.y)) %>% 
+   subset(select=c("Ethnicity_race.y","predtree")) %>% 
+   table() %>% 
+   print()
+
+```
+
+
+
+
