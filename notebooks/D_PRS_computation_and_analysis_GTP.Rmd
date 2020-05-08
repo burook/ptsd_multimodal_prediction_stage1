@@ -1,0 +1,90 @@
+---
+title: "D_PRS_computation_and_analysis"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+date: "May 5, 2020"
+---
+
+
+```{r}
+.libPaths( c( "/opt/R/3.6.2/lib/R/library" , .libPaths() ) )
+.libPaths()
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+
+# Computing PRS with  PRSice
+
+## PTSD-PRS
+
+Prepare PTSD pheno file for PRSice
+
+
+Let's prepare the pheno file for PRScise
+```{r}
+# all samples
+pheno_file_PTSD_status2 <- read_delim("/data/humgen/burook/GTP_analysis/GTP_pheno1.txt", col_names = TRUE, delim = "\t") %>% 
+  subset(select=c("IID","PTSD_diagnosis")) %>%  
+  filter(PTSD_diagnosis==0 | PTSD_diagnosis==1) 
+
+write.table(pheno_file_PTSD_status2, "/data/humgen/burook/GTP_analysis/gtp_ptsd/pheno_file_PTSD_status2", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+t1 <- read_delim("/data/humgen/burook/GTP_analysis/table_pred", col_names = TRUE, delim = " ") 
+
+# AFR ancestry samples
+pheno_file_PTSD_status2_afr <- pheno_file_PTSD_status2 %>% 
+  inner_join(t1, by=c("IID"="Sample")) %>% 
+  filter(predtree=='AFR') %>%
+  subset(select=c("IID","PTSD_diagnosis")) %>% 
+  print()
+
+write.table(pheno_file_PTSD_status2_afr, "/data/humgen/burook/GTP_analysis/gtp_ptsd_afr/pheno_file_PTSD_status2_afr", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+# non-AFR ancestry samples
+pheno_file_PTSD_status2_nonafr <- pheno_file_PTSD_status2 %>% 
+  inner_join(t1, by=c("IID"="Sample")) %>% 
+  filter(predtree!='AFR') %>%
+  subset(select=c("IID","PTSD_diagnosis")) %>% 
+  print()
+
+write.table(pheno_file_PTSD_status2_nonafr, "/data/humgen/burook/GTP_analysis/gtp_ptsd_nonafr/pheno_file_PTSD_status2_nonafr", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+```
+
+
+```{bash}
+cd /data/humgen/burook/GTP_analysis/gtp_ptsd/
+
+/PHShome/bm363/bin/plink2 \
+  --bfile /data/humgen/GTP_genomics/PLINK/input/PGC_GTP_June2017/GTPC/qc/pts_gtpc_mix_am-qc \
+  --maf 0.01 \
+  --geno 0.01 \
+  --mind 0.1 \
+  --hwe 0.001 \
+  --make-bed \
+  --out tmp_gtp1
+
+```
+
+
+```{bash}
+# with freeze-2 PGC-PTSD summ stats
+R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
+  plink /PHShome/bm363/bin/plink2 \
+  base /data/humgen/burook/sum_stats/pts_aam_freeze2_overall.results \
+  target /data/humgen/burook/GTP_analysis/gtp_ptsd/tmp_gtp1 \
+  pheno.file /data/humgen/burook/GTP_analysis/gtp_ptsd/pheno_file_PTSD_status2 \
+  binary.target T \
+  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
+  figname gtp_ptsd \
+  wd /data/humgen/burook/GTP_analysis/gtp_ptsd/
+```
+
+
+
