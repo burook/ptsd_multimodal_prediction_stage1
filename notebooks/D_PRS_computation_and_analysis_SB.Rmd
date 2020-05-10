@@ -26,18 +26,54 @@ library(readxl)
 Prepare PTSD pheno file for PRSice
 
 ```{r}
-fam_file <- read_delim("/data/humgen/burook/data_raw/sb/pts_sb1_mix_bm-qc1.hg19.ch.fl.bg.fam", col_names = FALSE, delim = " ");
-PTSD_clinical <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t");
+# fam_file <- read_delim("/data/humgen/burook/data_raw/sb/pts_sb1_mix_bm-qc1.hg19.ch.fl.bg.fam", col_names = FALSE, delim = " ");
+# PTSD_clinical <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t");
+# PTSD_status2 <- PTSD_clinical %>% 
+#   mutate(status = "-") %>% 
+#   mutate(status = replace(status, PTSD_status=="Negative", 0)) %>% 
+#   mutate(status = replace(status, PTSD_status=="Positive", 1)) %>% 
+#   filter(status!="-") %>% 
+#   subset(select=c("ID","status")) %>% 
+#   print()
+# write.table(PTSD_status2, "/data/humgen/burook/SysBio_analysis/sb_ptsd/pheno_file_status2", row.names = FALSE, col.names = FALSE, quote = FALSE)
 
 
-PTSD_status2 <- PTSD_clinical %>% 
-  mutate(status = "-") %>% 
-  mutate(status = replace(status, PTSD_status=="Negative", 0)) %>% 
-  mutate(status = replace(status, PTSD_status=="Positive", 1)) %>% 
-  filter(status!="-") %>% 
-  subset(select=c("ID","status")) %>% 
-  print()
+# all samples
+t1 <- read_delim("/data/humgen/burook/SysBio_analysis/table_pred", col_names = TRUE, delim = " ")
+PTSD_status2 <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t") %>%
+  mutate(ID=as.character(ID)) %>% 
+  inner_join(t1, by=c("ID"="Sample")) %>% 
+  filter(PTSD_status=="Negative" | PTSD_status=="Positive") %>% 
+  mutate(PTSD_status = factor(PTSD_status, labels =c(0,1))) %>% 
+  subset(select=c("ID","PTSD_status")) %>% 
+  print() 
+
 write.table(PTSD_status2, "/data/humgen/burook/SysBio_analysis/sb_ptsd/pheno_file_status2", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+# AFR ancestry samples
+PTSD_status2_afr <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t") %>%
+  mutate(ID=as.character(ID)) %>% 
+  inner_join(t1, by=c("ID"="Sample")) %>% 
+  filter(predtree=='AFR') %>% 
+  filter(PTSD_status=="Negative" | PTSD_status=="Positive") %>% 
+  mutate(PTSD_status = factor(PTSD_status, labels =c(0,1))) %>% 
+  subset(select=c("ID","PTSD_status")) %>% 
+  print() 
+
+write.table(PTSD_status2_afr, "/data/humgen/burook/SysBio_analysis/sb_ptsd_afr/pheno_file_status2_afr", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+# AFR ancestry samples
+PTSD_status2_nonafr <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t") %>%
+  mutate(ID=as.character(ID)) %>% 
+  inner_join(t1, by=c("ID"="Sample")) %>% 
+  filter(predtree!='AFR') %>% 
+  filter(PTSD_status=="Negative" | PTSD_status=="Positive") %>% 
+  mutate(PTSD_status = factor(PTSD_status, labels =c(0,1))) %>% 
+  subset(select=c("ID","PTSD_status")) %>% 
+  print() 
+
+write.table(PTSD_status2_nonafr, "/data/humgen/burook/SysBio_analysis/sb_ptsd_nonafr/pheno_file_status2_nonafr", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
 ```
 
 
@@ -60,7 +96,7 @@ head /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results
 sort -k 2,2 -r -u pts_eur_freeze2_overall.results > pts_eur_freeze2_overall.results.exDupVar
 ```
 
-Run PRSice with freeze-2 data
+Run PRSice with freeze-2 GWAS data
 ```{bash}
 # with freeze-2 PGC-PTSD summ stats
 R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
@@ -78,7 +114,37 @@ R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
 ```
 
 ```{bash}
-ls /data/humgen/burook/SysBio_analysis/sb_ptsd/
-
+# with freeze-2 PGC-PTSD summ stats
+R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
+  plink /PHShome/bm363/bin/plink2 \
+  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results.exDupVar \
+  target /data/humgen/burook/SysBio_analysis/sb_ptsd/tmp_sb1 \
+  pheno.file /data/humgen/burook/SysBio_analysis/sb_ptsd_nonafr/pheno_file_status2_nonafr \
+  binary.target T \
+  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
+  clump.snps T \
+  prune.snps F \
+  quantiles T \
+  figname sb_ptsd_nonafr \
+  wd /data/humgen/burook/SysBio_analysis/sb_ptsd_nonafr/
 ```
+
+```{bash}
+# with freeze-2 PGC-PTSD summ stats
+R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
+  plink /PHShome/bm363/bin/plink2 \
+  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results.exDupVar \
+  target /data/humgen/burook/SysBio_analysis/sb_ptsd/tmp_sb1 \
+  pheno.file /data/humgen/burook/SysBio_analysis/sb_ptsd_afr/pheno_file_status2_afr \
+  binary.target T \
+  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
+  clump.snps T \
+  prune.snps F \
+  quantiles T \
+  figname sb_ptsd_afr \
+  wd /data/humgen/burook/SysBio_analysis/sb_ptsd_afr/
+```
+
+
+
 
