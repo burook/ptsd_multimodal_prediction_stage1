@@ -1,0 +1,147 @@
+---
+title: "D_PRS_computation_and_analysis"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+date: "May 5, 2020"
+---
+
+
+```{r}
+.libPaths( c( "/opt/R/3.6.2/lib/R/library" , .libPaths() ) )
+.libPaths()
+```
+
+```{r}
+library(tidyverse)
+library(readxl)
+```
+
+
+# Individual predictors
+
+## Load data
+
+```{r}
+# let's load necessary files for performance analysis and plots
+sb_pheno1 <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t") %>%
+  mutate(ID=as.character(ID)) 
+pcs1 = read.table("/data/humgen/burook/SysBio_analysis/sb_ptsd_nonafr/ANCESTRY_INFORMATIVE_DIMENSIONS.mds", header = TRUE) %>% 
+   mutate(IID=as.character(IID))
+prs1 = read.table("/data/humgen/burook/SysBio_analysis/sb_ptsd_nonafr/sb_ptsd_nonafr_SCORES_AT_BEST-FIT-PRS.txt", header = TRUE) %>% 
+  mutate(IID=as.character(IID)) 
+prs1[,2]=scale(prs1[,2],center=T,scale=T); colnames(prs1)=c("IID","prs");
+# also let's load the file containing predicted ancestry labels
+t1 <- read_delim("/data/humgen/burook/SysBio_analysis/table_pred", col_names = TRUE, delim = " ")
+
+
+PTSD_all_data <- t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  mutate(IID=Sample) %>% 
+  full_join(sb_pheno1, by=c("Sample"="ID")) %>%
+  full_join(pcs1, by=("IID")) %>% 
+  full_join(prs1, by=("IID")) %>% 
+#  filter(!is.na(prs)) %>% 
+#  filter(predtree=='EUR') %>% 
+  # let's add descritized variables EA and CA
+  mutate(CA4 = cut(ETISR_Total, breaks = c(-Inf,5,10,15,Inf), right=T, labels = F)) %>%
+  mutate(EA4 = cut(DemoEdu, breaks = c(-Inf,2,3,4,Inf), right=T, labels = F)) 
+
+```
+
+## Edu and PTSD status
+
+```{r}
+# Edu and PTSD status
+x=table(PTSD_all_data[,c("PTSD_status","EA4")])
+# swap 'positive' and 'negative' rows for plots
+y <- x[c(2,1),]
+barplot(y)
+
+#pdf("//..../EA_and_ptsd_status_plot_1.pdf", width=8.5, height=5)
+par(mfrow=c(1, 1), mar=c(5, 5, 5, 10), xpd=TRUE)
+barplot(prop.table(y, margin = 2), beside=F, horiz=F,
+        col=c("red","steelblue"),
+        legend = rownames(y), legend.text = TRUE,
+        args.legend = list(x = "topright", bty = "n", inset=c(-0.25,0)),
+        cex.lab=1.5,
+        main = "Conditional probability of PTSD diagnosis",
+        ylab = "Proportion with PTSD",
+        xlab = "Education level",
+        names.arg = c("H.S. Diploma \n or less","A.A. Degree \n(2 yrs)","Bachelor's \n Degree (4 yrs)","Master's \n Degree or more"))
+#dev.off()
+
+
+# Edu and PTSD severity
+#pdf("//..../figures/EA_and_ptsd_severity_plot_1.pdf", width=9, height=5)
+par(mfrow=c(1, 1), mar=c(5, 5, 5, 10), xpd=TRUE)
+boxplot(CAPSTOT_cur~EA4, 
+        data = PTSD_all_data, 
+        notch=FALSE, 
+        names=c("H.S. Diploma \n or less","A.A. Degree \n(2 yrs)","Bachelor's \n Degree (4 yrs)","Master's \n Degree or more"), 
+        xlab = "Education level",
+        ylab="CAPSSTOT_cur", 
+        main = "PTSD Severity",
+        cex.lab=1.5,
+        ylim=c(0, 120),
+        col="lightblue")
+#         col=(c("steelblue","lightblue","gold","lightgreen")))
+# stripchart(CAPSTOT_cur~DemoEdu, 
+#            data = x, 
+#            vertical = TRUE, 
+#            method = "jitter", 
+#            add = TRUE, pch = 20, col = 'blue')
+#dev.off()
+
+```
+
+## Childhood trauma and PRS
+
+```{r}
+# CA and PTSD status
+x=table(PTSD_all_data[,c("PTSD_status","CA4")])
+barplot(x, beside=F)
+# swap 'positive' and 'negative' rows for plots
+y <- x[c(2,1),]
+
+#pdf("//..../CA_and_ptsd_status_plot_1.pdf", width=8.5, height=5)
+par(mfrow=c(1, 1), mar=c(5, 5, 5, 10), xpd=TRUE)
+barplot(prop.table(y, margin = 2), beside=F, horiz=F,
+        col=c("red","steelblue"),
+        legend = rownames(y), legend.text = TRUE,
+        args.legend = list(x = "topright", bty = "n", inset=c(-0.25,0)),
+        cex.lab=1.5,
+        main = "Conditional probability of PTSD diagnosis",
+        ylab = "Proportion with PTSD",
+        xlab = "Childhood adversity severity",
+        names.arg = c("[0,5]","(5,10]","(10,15]","(15,22]"))
+#dev.off()
+
+
+### CA and PTSD severity
+
+#pdf("//..../CA_and_ptsd_severity_plot_1.pdf", width=9, height=5)
+par(mfrow=c(1, 1), mar=c(5, 5, 5, 10), xpd=TRUE)
+boxplot(CAPSTOT_cur~CA4, 
+        data = PTSD_all_data, 
+        notch=FALSE, 
+        names=c("[0,5]","(5,10]","(10,15]","(15,22]"), 
+        xlab = "Childhood adversity severity",
+        ylab="CAPSSTOT_cur", 
+        main = "PTSD Severity",
+        cex.lab=1.5,
+        ylim=c(0, 120),
+        col="lightblue")
+#         col=(c("steelblue","lightblue","gold","lightgreen")))
+# stripchart(CAPSTOT_cur~ETISR_Total, 
+#            data = x, 
+#            vertical = TRUE, 
+#            method = "jitter", 
+#            add = TRUE, pch = 20, col = 'blue')
+#dev.off()
+
+```
+
+
+
