@@ -133,7 +133,7 @@ R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
 # with freeze-2 PGC-PTSD summ stats
 R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
   plink /PHShome/bm363/bin/plink2 \
-  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results.exDupVar \
+  base /data/humgen/burook/sum_stats/pts_aam_freeze2_overall.results \
   target /data/humgen/burook/SysBio_analysis/sb_ptsd/tmp_sb1 \
   pheno.file /data/humgen/burook/SysBio_analysis/sb_ptsd_afr/pheno_file_status2_afr \
   binary.target T \
@@ -141,8 +141,114 @@ R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
   clump.snps T \
   prune.snps F \
   quantiles T \
-  figname sb_ptsd_afr \
+  figname sb_ptsd_afr_aam \
   wd /data/humgen/burook/SysBio_analysis/sb_ptsd_afr/
+```
+ 
+ 
+## Analysis of the constructed PRS 
+ 
+```{r}
+# let's load necessary files for performance analysis and plots
+sb_pheno1 <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t") %>%
+  mutate(ID=as.character(ID)) 
+pcs1 = read.table("/data/humgen/burook/SysBio_analysis/sb_ptsd_nonafr/ANCESTRY_INFORMATIVE_DIMENSIONS.mds", header = TRUE) %>% 
+   mutate(IID=as.character(IID))
+prs1 = read.table("/data/humgen/burook/SysBio_analysis/sb_ptsd_nonafr/sb_ptsd_nonafr_SCORES_AT_BEST-FIT-PRS.txt", header = TRUE) %>% 
+  mutate(IID=as.character(IID)) 
+prs1[,2]=scale(prs1[,2],center=T,scale=T); colnames(prs1)=c("IID","prs");
+# also let's load the file containing predicted ancestry labels
+t1 <- read_delim("/data/humgen/burook/SysBio_analysis/table_pred", col_names = TRUE, delim = " ")
+
+
+# 
+# pcs1 = read.table("/data/humgen/burook/SysBio_analysis/sb_ptsd_afr/ANCESTRY_INFORMATIVE_DIMENSIONS.mds", header = TRUE) %>% 
+#    mutate(IID=as.character(IID))
+# prs1 = read.table("/data/humgen/burook/SysBio_analysis/sb_ptsd_afr/sb_ptsd_afr_aam_SCORES_AT_BEST-FIT-PRS.txt", header = TRUE) %>% 
+#   mutate(IID=as.character(IID))
+# prs1[,2]=scale(prs1[,2],center=T,scale=T); colnames(prs1)=c("IID","prs");
+# 
+
+
+PTSD_all_data <- t1 %>% 
+  filter(is.na(SuperPopulation)) %>% 
+  mutate(IID=Sample) %>% 
+  full_join(sb_pheno1, by=c("Sample"="ID")) %>%
+  full_join(pcs1, by=("IID")) %>% 
+  full_join(prs1, by=("IID")) %>% 
+  filter(!is.na(prs)) %>% 
+#  filter(predtree=='EUR') %>% 
+  print()
+
+```
+
+
+```{r}
+require(fmsb) # for NagelkerkeR2 calculation
+
+predictors1 <- c("prs")
+covariates <- c("C1","C2","C3","C4","C5","C6","C7","C8","C9","C10")  # c(,"DemoAge","DemoGend")
+
+model.full <- glm(as.factor(PTSD_status) ~., family="binomial", data = PTSD_all_data[,c("PTSD_status", predictors1, covariates)])
+model.null <-  glm(as.factor(PTSD_status) ~., family="binomial", data = PTSD_all_data[,c("PTSD_status",covariates)])
+
+paste("R^2 = ", 
+100*(NagelkerkeR2(model.full)$R2 - NagelkerkeR2(model.null)$R2),  # Nagelkerke R^2
+", P = ",
+summary(model.full)$coefficients[2,4]  ) # p-value only when there is only one predictor variable
+
+```
+
+```{r}
+source('/data/humgen/burook/ptsd_multimodal_prediction_stage1/R/quantile_plot_and_stats.R')
+#pdf("//.../quantiles_oddsRatio_ptsd_prs1.pdf", width=5.5, height=5)
+plot1=quantile_plot_and_stats(prs = prs1, 
+                              pcs = pcs1, 
+                              pheno.data.all = PTSD_all_data, 
+                              covariates = c("C1","C2","C3","C4","C5"),
+                              num.quantiles = 4, binary.pheno = T, pheno.name = "PTSD_status")
+#                              num.quantiles = 4, binary.pheno = F, pheno.name = "CAPSTOT_cur")
+
+plot1
+
+#dev.off()
+#plot1
+```
+
+Distribution of the PTSD-PRS 
+```{r}
+plot1 <- PTSD_all_data %>% 
+  filter(!is.na(prs)) %>% 
+ggplot(aes(x=prs)) + 
+  geom_histogram(aes(y =..density..), 
+                 col="darkgreen", 
+                 fill="navyblue", 
+                 alpha=.2, binwidth=0.1) +
+  ylab("Count") + 
+  xlab("PTSD-PRS") +
+  geom_density(col="red")
+
+plot1
+
+```
+
+```{r}
+#pdf("//.../hist_ptsd_prs_ancestry2.pdf", width=5.5, height=5)
+
+x1 <- PTSD_all_data %>% group_by(PTSD_status) %>% summarise(mu1 = mean(prs, na.rm = TRUE))
+plot1 <- PTSD_all_data %>% 
+  filter(!is.na(prs)) %>% 
+  mutate(PTSD_status = fct_relevel(PTSD_status, "Positive", "Negative")) %>% 
+  ggplot(aes(x=prs, color=PTSD_status)) +
+#  geom_histogram(aes(y =..density..), alpha=.2, binwidth=0.1) +
+  geom_density() +
+  geom_vline(data=x1, aes(xintercept=mu1, color=PTSD_status), linetype="dashed")+
+  xlab("PTSD-PRS")
+
+plot1
+
+#dev.off()
+#plot1
 ```
 
 
