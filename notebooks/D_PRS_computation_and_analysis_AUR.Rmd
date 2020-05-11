@@ -8,6 +8,7 @@ date: "Feb. 20, 2020"
 ---
 
 
+
 ```{r}
 library(tidyverse)
 library(readxl)
@@ -125,7 +126,7 @@ R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
 
 ```
 
-  
+
 ```{r}
 # let's load necessary files for performance analysis and plots
 aur_pheno1 <- read_delim("/data/humgen/burook/AURORA/aur_pheno1.txt", col_names = TRUE, delim = "\t")
@@ -154,8 +155,10 @@ covariates <- c("C1","C2","C3","C4","C5")  # c("C1","C2","C3","C4","C5","ED_Age"
 model.full <- glm(as.factor(M3_PCL5) ~., family="binomial", data = PTSD_all_data[,c("M3_PCL5", predictors1, covariates)])
 model.null <-  glm(as.factor(M3_PCL5) ~., family="binomial", data = PTSD_all_data[,c("M3_PCL5",covariates)])
 
-100*(NagelkerkeR2(model.full)$R2 - NagelkerkeR2(model.null)$R2)
-summary(model.full)$coefficients[2,4]  # p-value only when there is only one predictor variable
+paste("R^2 = ", 
+100*(NagelkerkeR2(model.full)$R2 - NagelkerkeR2(model.null)$R2),  # Nagelkerke R^2
+", P = ",
+summary(model.full)$coefficients[2,4]  ) # p-value only when there is only one predictor variable
 
 ```
 
@@ -166,12 +169,12 @@ prs1 = read.table("/data/humgen/burook/AURORA/aur_ptsd/aur_ptsd_SCORES_AT_BEST-F
 # the prs sign is inverted, let's correct it
 prs1[,2] = -1*prs1[,2]
 
-pdf("/data/humgen/burook/AURORA/figures/quantiles_oddsRatio_ptsd_prs1.pdf", width=5.5, height=5)
+#pdf("/data/humgen/burook/AURORA/figures/quantiles_oddsRatio_ptsd_prs1.pdf", width=5.5, height=5)
 plot1=quantile_plot_and_stats(prs = prs1, pcs = pcs1, pheno.data.all = aur_pheno1, covariates = c("C1","C2","C3","C4","C5"), num.quantiles = 4, binary.pheno = T, pheno.name = "M3_PCL5");
 plot1
 
-dev.off()
-plot1
+#dev.off()
+#plot1
 
 x1=quantile_plot_and_stats(prs = prs1, pcs = pcs1, pheno.data.all = aur_pheno1, covariates = c("C1","C2","C3","C4","C5"), num.quantiles = 4, binary.pheno = F, pheno.name = "M3_PCL5_RS"); x1
 ```
@@ -195,7 +198,7 @@ plot1
 
 Distribution of PTSD-PRS for ancestral groups
 ```{r}
-pdf("/data/humgen/burook/AURORA/figures/hist_ptsd_prs_ancestry1.pdf", width=5.5, height=5)
+#pdf("/data/humgen/burook/AURORA/figures/hist_ptsd_prs_ancestry1.pdf", width=5.5, height=5)
 plot1 <- PTSD_all_data %>% 
   filter(!is.na(prs)) %>% 
 ggplot(aes(x=prs, color=predtree)) + 
@@ -205,8 +208,8 @@ ggplot(aes(x=prs, color=predtree)) +
 
 plot1
 
-dev.off()
-plot1
+#dev.off()
+#plot1
 ```
 
 Only AFR ancestry samples
@@ -369,129 +372,4 @@ x1=quantile_plot_and_stats(prs = prs1, pcs = pcs1, pheno.data.all = aur_pheno1, 
 ```
 
 
-
-## MDD-PRS
-
-Prepare MDD pheno file for PRSice
-```{r}
-pheno_file_MDD_status2 <- aur_pheno1 %>% 
-  filter(!is.na(FID)) %>% 
-  subset(select=c("IID","M3_PROM_Dep8b")) %>% 
-  filter(!is.na(M3_PROM_Dep8b)) 
-write.table(pheno_file_MDD_status2, "/data/humgen/burook/AURORA/aur_mdd/pheno_file_MDD_status2", row.names = FALSE, col.names = FALSE, quote = FALSE)
-
-```
-
-Let's look at the summary statistics of the MDD GWAS
-```{bash}
-head /data/humgen/burook/sum_stats/PGC_MDD2018_10kSNPs
-```
-
-
-Compute PRS with MDD summary stats
-```{bash}
-# with freeze-2 PGC-PTSD summ stats
-R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
-  plink /PHShome/bm363/bin/plink2 \
-  base /data/humgen/burook/sum_stats/PGC_MDD2018_10kSNPs \
-  target /data/humgen/burook/AURORA/tmp_aur1 \
-  pheno.file /data/humgen/burook/AURORA/aur_mdd/pheno_file_MDD_status2 \
-  binary.target T \
-  covariates C1,C2,C3,C4,C5 \
-  slower 0 \
-  sinc 0.00005 \
-  supper 0.01 \
-  clump.snps T \
-  prune.snps F \
-  quantiles T \
-  barchart.levels "0.00005, 0.00055, 0.00105, 0.00155, 0.00205, 0.00255, 0.00305, 0.00355, 0.00405, 0.00455, 0.00505, 0.00555, 0.00605, 0.00655, 0.00705, 0.00755, 0.00805, 0.00855, 0.00905, 0.00955" \
-  figname aur_mdd \
-  wd /data/humgen/burook/AURORA/aur_mdd/ #>ptsd.out
-
-
-#  base /data/humgen/burook/sum_stats/MDD2018_ex23andMe \
-
-```
-
-
-```{r}
-# let's load necessary files for performance analysis and plots
-aur_pheno1 <- read_delim("/data/humgen/burook/AURORA/aur_pheno1.txt", col_names = TRUE, delim = "\t")
-pcs1 = read.table("/data/humgen/burook/AURORA/aur_mdd/ANCESTRY_INFORMATIVE_DIMENSIONS.mds", header = TRUE)
-prs1 = read.table("/data/humgen/burook/AURORA/aur_mdd/aur_mdd_SCORES_AT_BEST-FIT-PRS.txt", header = TRUE)
-prs1[,2]=scale(prs1[,2],center=T,scale=T); colnames(prs1)=c("IID","prs");
-t1 <- read_delim("/data/humgen/burook/AURORA/table_pred", col_names = TRUE, delim = " ")
-
-PTSD_all_data <- t1 %>% 
-  filter(is.na(SuperPopulation)) %>% 
-  mutate(IID=Sample) %>% 
-  full_join(aur_pheno1, by="IID") %>% 
-  full_join(pcs1, by="IID") %>% 
-  full_join(prs1, by="IID") %>% 
-  filter(!is.na(prs))
-```
-
-```{r}
-require(fmsb) # for NagelkerkeR2 calculation
-
-predictors1 <- c("prs")
-covariates <- c("C1","C2","C3","C4","C5")  # c("C1","C2","C3","C4","C5","ED_Age","ED_GenderNow")
-
-model.full <- glm(as.factor(M3_PROM_Dep8b) ~., family="binomial", data = PTSD_all_data[,c("M3_PROM_Dep8b", predictors1, covariates)])
-model.null <-  glm(as.factor(M3_PROM_Dep8b) ~., family="binomial", data = PTSD_all_data[,c("M3_PROM_Dep8b",covariates)])
-
-# NagelkerkeR2  
-100*(NagelkerkeR2(model.full)$R2 - NagelkerkeR2(model.null)$R2)
-summary(model.full)$coefficients[2,4]  # p-value only when there is only one predictor variable
-
-```
-
-
-```{r}
-aur_pheno1 <- read_delim("/data/humgen/burook/AURORA/aur_pheno1.txt", col_names = TRUE, delim = "\t")
-pcs1 = read.table("/data/humgen/burook/AURORA/aur_mdd/ANCESTRY_INFORMATIVE_DIMENSIONS.mds", header = TRUE)
-prs1 = read.table("/data/humgen/burook/AURORA/aur_mdd/aur_mdd_SCORES_AT_BEST-FIT-PRS.txt", header = TRUE)
-
-#pdf("/data/humgen/burook/AURORA/figures/quantiles_oddsRatio_mdd_prs1.pdf", width=5.5, height=5)
-plot1=quantile_plot_and_stats(prs = prs1, pcs = pcs1, pheno.data.all = aur_pheno1, covariates = c("C1","C2","C3","C4","C5"), num.quantiles = 4, binary.pheno = T, pheno.name = "M3_PROM_Dep8b");
-plot1
-
-#dev.off()
-#plot1
-
-x1=quantile_plot_and_stats(prs = prs1, pcs = pcs1, pheno.data.all = aur_pheno1, covariates = c("C1","C2","C3","C4","C5"), num.quantiles = 4, binary.pheno = F, pheno.name = "M3_PROM_Dep8b_T"); x1
-
-```
-
-```{r}
-plot1 <- PTSD_all_data %>% 
-  filter(!is.na(prs)) %>% 
-ggplot(aes(prs)) + 
-  geom_histogram(aes(y =..density..),  
-                 col="darkgreen", 
-                 fill="navyblue", 
-                 alpha=.2, binwidth=0.2) +
-  geom_density(col="red") +
-  ylab("Count") + 
-  xlab("MDD-PRS")
-
-plot1
-
-```
-
-
-```{r}
-pdf("/data/humgen/burook/AURORA/figures/hist_mdd_prs_ancestry1.pdf", width=5.5, height=5)
-plot1 <- PTSD_all_data %>% 
-  filter(!is.na(prs)) %>% 
-ggplot(aes(x=prs, color=predtree)) + 
-  geom_histogram(alpha=0.2, position="identity", binwidth = 0.1) +
-  ylab("Count") + 
-  xlab("MDD-PRS")
-
-plot1
-
-dev.off()
-plot1
-```
 
