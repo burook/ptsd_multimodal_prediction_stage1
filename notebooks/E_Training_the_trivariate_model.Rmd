@@ -15,7 +15,6 @@ date: "May 5, 2020"
 
 ```{r}
 library(tidyverse)
-library(readxl)
 ```
 
 
@@ -42,11 +41,12 @@ PTSD_all_data <- t1 %>%
   full_join(sb_pheno1, by=c("Sample"="ID")) %>%
   full_join(pcs1, by=("IID")) %>% 
   full_join(prs1, by=("IID")) %>% 
-#  filter(!is.na(prs)) %>% 
-#  filter(predtree=='EUR') %>% 
   # let's add descritized variables EA and CA
   mutate(CA4 = cut(ETISR_Total, breaks = c(-Inf,5,10,15,Inf), right=T, labels = F)) %>%
-  mutate(EA4 = cut(DemoEdu, breaks = c(-Inf,2,3,4,Inf), right=T, labels = F)) 
+  mutate(EA4 = cut(DemoEdu, breaks = c(-Inf,2,3,4,Inf), right=T, labels = F)) %>% 
+  mutate(prs_quantiles = cut(prs, breaks = quantile(prs1$prs, probs = seq(0, 1, 1/4)), include.lowest=T))
+#  filter(!is.na(prs)) %>% 
+#  filter(predtree=='EUR') %>% 
 
 ```
 
@@ -144,4 +144,199 @@ boxplot(CAPSTOT_cur~CA4,
 ```
 
 
+```{r}
+# consider samples that have only all of the necessary variables
+data1 <- PTSD_all_data %>% 
+  filter(complete.cases(PTSD_all_data[,c("PTSD_status", "CAPSTOT_cur", "prs", "CA4","EA4")]))
+
+# partitioning into training and testing
+set.seed(171717); # for reproducibility
+inTrain <- sample(1:nrow(data1), floor(0.8*nrow(data1)))
+# another way of doing the above line with a function from caret
+# require(caret)
+# inTrain <- createDataPartition(data1$PTSD_status, p=0.5, list=FALSE)
+
+
+# choose the three explanatory variables and PTSD status as the binary outcome variable
+# also choose CAPS for c-index calculation
+xTrain1 <- as.matrix(data1[inTrain,c("prs","CA4","EA4")])
+yTrain1 <- factor(as_vector(data1[inTrain,c("PTSD_status")]), labels = c("control","case"))
+yTrain2 <- as_vector(data1[inTrain,c("CAPSTOT_cur")])
+xTest1 <- as.matrix(data1[-inTrain,c("prs","CA4","EA4")])
+yTest1 <- factor(as_vector(data1[-inTrain,c("PTSD_status")]), labels = c("control","case"))
+yTest2 <- as_vector(data1[-inTrain,c("CAPSTOT_cur")])
+
+require(pROC) # AUC computation
+require(survival) # for C-index computation
+
+# a matrix to hold the performances 
+training.perf <- matrix(0, nrow = 7, ncol = 10)
+rownames(training.perf) <- c("EA", "CA", "PRS", "EA-CA", "EA-PRS", "CA-PRS", "EA-CA-PRS")
+colnames(training.perf) <- c("AUC","frac.cases.lowest.q","frac.cases.highest.q","frac.cases.lowest.d","frac.cases.highest.d", 
+                             "C.index","mean.sev.lowest.q","mean.sev.highest.q","mean.sev.lowest.d","mean.sev.highest.d")
+testing.perf <- matrix(0, nrow = 7, ncol = 10)
+rownames(testing.perf) <- c("EA", "CA", "PRS", "EA-CA", "EA-PRS", "CA-PRS", "EA-CA-PRS")
+colnames(testing.perf) <- c("AUC","frac.cases.lowest.q","frac.cases.highest.q","frac.cases.lowest.d","frac.cases.highest.d", 
+                             "C.index","mean.sev.lowest.q","mean.sev.highest.q","mean.sev.lowest.d","mean.sev.highest.d")
+
+# if we just use the raw PRS scores as predictors
+training.perf["PRS","AUC"] <- (pROC::roc(yTrain1, xTrain1[,"prs"],ci=T))$auc
+training.perf["PRS","C.index"] <- summary(coxph(Surv(as_vector(xTrain1[,"prs"]))~yTrain2))$concordance["C"]
+testing.perf["PRS","AUC"] <- (pROC::roc(as.factor(yTest1), xTest1[,"prs"],ci=T))$auc
+testing.perf["PRS","C.index"] <- summary(coxph(Surv(as.numeric(xTest1[,"prs"]))~yTest2))$concordance["C"]
+```
+
+
+```{r}
+require(caret)   # for the logistic regression below
+require(randomForest)   # for the random forest below
+
+for (i in (4:7)) {
+  
+  # select predictor variable
+  if (i==1) 
+    pred_vars1 <- c("EA4")  # model 1 : EA
+  else if (i==2)
+    pred_vars1 <- c("CA")   # model 2 : CA
+  else if (i==3)
+    pred_vars1 <- c("prs")  # model 3 : PRS
+  else if (i==4)
+    pred_vars1 <- c("CA4","EA4") # model 4 : EA + CA
+  else if (i==5)
+    pred_vars1 <- c("prs","EA4") # model 5 : EA + prs
+  else if (i==6)
+    pred_vars1 <- c("prs","CA4") # model 6 : CA + prs
+  else
+    pred_vars1 <- c("prs","EA4","CA4")  # model 7 : EA + CA + prs
+  
+  # train the model
+  #model1 <- randomForest(x=xTrain1[,pred_vars1], y=as.factor(yTrain1))
+  model1 <- train(y=yTrain1,x=as.matrix(xTrain1[,pred_vars1]), method="glm", family="binomial")
+  
+  # training performance
+  pred = predict(model1, newdata=xTrain1, type="prob")
+  training.perf[i,"AUC"] <- (pROC::roc(as.factor(yTrain1), pred[,2],ci=T))$auc
+  training.perf[i,"C.index"] <- summary(coxph(Surv(as.numeric(pred[,2]))~yTrain2))$concordance["C"]
+  
+  # testing performance
+  pred = predict(model1, newdata=xTest1, type="prob")
+  testing.perf[i,"AUC"] <- (pROC::roc(as.factor(yTest1), pred[,2],ci=T))$auc
+  testing.perf[i,"C.index"] <- summary(coxph(Surv(as.numeric(pred[,2]))~yTest2))$concordance["C"]
+}
+
+training.perf
+testing.perf
+
+```
+
+
+## Analysis with cross-validation and different types of classifiers
+
+```{r}
+# consider samples that have only all of the necessary variables
+data_SB <- PTSD_all_data %>% 
+  filter(complete.cases(PTSD_all_data[,c("PTSD_status", "CAPSTOT_cur", "prs", "CA4", "EA4")])) %>% 
+  subset(select=c("PTSD_status", "CAPSTOT_cur", "prs", "CA4", "EA4")) 
+# partitioning into training and testing
+set.seed(171717); # for reproducibility
+inTrain <- sample(1:nrow(data1), floor(0.8*nrow(data1)))
+xTrain1 <- as.matrix(data1[inTrain,c("prs","CA4","EA4")])
+yTrain1 <- factor(as_vector(data1[inTrain,c("PTSD_status")]), labels = c("control","case"))
+xTest1 <- as.matrix(data1[-inTrain,c("prs","CA4","EA4")])
+yTest1 <- factor(as_vector(data1[-inTrain,c("PTSD_status")]), labels = c("control","case"))
+
+
+require(pROC)
+# a matrix to hold the performances of the models
+AUC3 <- matrix(0, nrow = 4, ncol = 2)
+rownames(AUC3) <- c("logistic regression", "linear SVM", "boosted trees", "random forest")
+colnames(AUC3) <- c("training","testing")
+
+###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# logistic regression
+require(caret)
+ctrl <- trainControl(method = "repeatedcv", number = 5, savePredictions = TRUE)
+
+mod_fit <- train(x=xTrain1, y=yTrain1,
+                 method="glm", family="binomial",
+                 trControl = ctrl, tuneLength = 5)
+
+lr1 <- train(y=yTrain1,x=as.matrix(xTrain1),
+             method="glm", 
+             family="binomial")
+
+pred = predict(lr1, newdata=as.data.frame(xTrain1), type='prob')
+AUC3[1,1] = (pROC::roc(yTrain1, pred[,1],ci=F))$auc
+pred = predict(lr1, newdata=as.data.frame(xTest1), type='prob')
+AUC3[1,2] = (pROC::roc(yTest1, pred[,1],ci=F))$auc
+
+###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# SVM
+#library(dplyr)  
+require(kernlab)   
+
+# Setup for cross validation
+set.seed(17)
+ctrl2 <- trainControl(method = "repeatedcv",
+                      repeats = 10,
+                      classProbs=T,
+                      summaryFunction=twoClassSummary	# Use AUC to pick the best model
+)
+
+#Train and Tune the SVM
+svm1 <- train(x=xTrain1,
+              y= yTrain1,
+              method = "svmLinear",   # linear kernel
+              tuneLength = 9,					# 9 values of the cost function
+              # preProc = c("center","scale"),  # Center and scale data
+              metric="ROC",
+              trControl=ctrl2)
+
+pred = predict(svm1, newdata=xTrain1, type="prob")
+AUC3[2,1] = (pROC::roc(as.factor(yTrain1), pred[,1],ci=T))$auc
+pred = predict(svm1, newdata=xTest1, type="prob")
+AUC3[2,2] = (pROC::roc(as.factor(yTest1), pred[,1],ci=T))$auc
+
+###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# boosted tree
+require(gbm)   
+
+# Setup for cross validation
+set.seed(17)
+ctrl2 <- trainControl(method = "repeatedcv",
+                      repeats = 10,
+                      classProbs=T,
+                      summaryFunction=twoClassSummary	# Use AUC to pick the best model
+)
+
+#Train and Tune the SVM
+gbm1 <- train(x=xTrain1,
+              y= yTrain1,
+              method = "gbm",   # linear kernel
+              tuneLength = 9,					# 9 values of the cost function
+              # preProc = c("center","scale"),  # Center and scale data
+              metric="ROC",
+              trControl=ctrl2)
+
+pred = predict(gbm1, newdata=xTrain1, type="prob")
+AUC3[3,1] = (pROC::roc(as.factor(yTrain1), pred[,1],ci=T))$auc
+pred = predict(svm1, newdata=xTest1, type="prob")
+AUC3[3,2] = (pROC::roc(as.factor(yTest1), pred[,1],ci=T))$auc
+
+###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Random forest
+require(randomForest)
+rf1 <- randomForest(x=xTrain1, y=as.factor(yTrain1))
+
+pred = predict(rf1, newdata=xTrain1, type="prob")
+AUC3[4,1] = (pROC::roc(as.factor(yTrain1), pred[,1],ci=T))$auc
+pred = predict(rf1, newdata=xTest1, type="prob")
+AUC3[4,2] = (pROC::roc(as.factor(yTest1), pred[,1],ci=T))$auc
+AUC3
+
+```
+
+```{r}
+save(lr1, svm1, gbm1, rf1, AUC3, file = "/data/humgen/burook/ptsd_multimodal_prediction_stage1/model1.RData")
+```
 
