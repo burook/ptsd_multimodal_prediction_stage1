@@ -72,7 +72,7 @@ cd /data/humgen/burook/GTP_analysis/gtp_ptsd/
 
 ```
 
-
+Computing PRS on all sample together.
 ```{bash}
 # with freeze-2 PGC-PTSD summ stats
 R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
@@ -84,6 +84,24 @@ R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
   covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
   figname gtp_ptsd \
   wd /data/humgen/burook/GTP_analysis/gtp_ptsd/
+```
+
+Computing PRS on AFR sub-sample.
+```{bash}
+# with freeze-2 PGC-PTSD summ stats
+R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
+  plink /PHShome/bm363/bin/plink2 \
+  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results.exDupVar \
+  target /data/humgen/burook/GTP_analysis/gtp_ptsd/tmp_gtp1 \
+  pheno.file /data/humgen/burook/GTP_analysis/gtp_ptsd_afr/pheno_file_PTSD_status2_afr \
+  binary.target T \
+  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
+  slower 0.01 \
+  sinc 0.0005 \
+  supper 0.5 \
+  figname gtp_ptsd \
+  wd /data/humgen/burook/GTP_analysis/gtp_ptsd_afr/
+
 ```
 
 
@@ -156,7 +174,8 @@ Distribution of the PTSD-PRS
 ```{r}
 plot1 <- PTSD_all_data %>% 
   filter(!is.na(prs)) %>% 
-ggplot(aes(x=prs)) + 
+  filter(predtree.x=='AFR') %>% 
+  ggplot(aes(x=prs)) + 
   geom_histogram(aes(y =..density..), 
                  col="darkgreen", 
                  fill="navyblue", 
