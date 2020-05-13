@@ -77,7 +77,6 @@ Accordingly, three predictors are studied in the first stage
 
 ```{r}
 library(tidyverse)
-library(readxl)
 ```
 
 
@@ -278,8 +277,37 @@ aur_pheno1 %>%
 # Marginal effects of individual predictors
 
 
-# Composite risk score of the three
+# Building composite risk score of the three
 
+## Training performance
+
+```{r}
+load(file = "/data/humgen/burook/ptsd_multimodal_prediction_stage1/model1.RData")
+knitr::kable(AUC3, caption = "Table with kable")
+```
+
+## Training performance
+
+```{r, results='asis'}
+library(xtable)
+options(xtable.floating = FALSE)
+options(xtable.timestamp = "")
+
+print(xtable(AUC3, digits = 3), type = "html")
+
+df <- data.frame(A = c(1.00123, 33.1, 6),
+                 B = c(111111, 3333333, 3123.233))
+## The following code gives the error
+## formal argument "digits" matched by multiple actual arguments
+## print(xtable(df, display = c("s","e","e")),
+##       format.args = list(digits = 3, big.mark = " ", decimal.mark = ","))
+## specify digits as argument to xtable instead
+print(xtable(df), type = "html")
+```
+
+
+ 
 # Summary and future work
+
 
 
