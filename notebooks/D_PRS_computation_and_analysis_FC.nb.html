@@ -2914,27 +2914,60 @@ library(readxl)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<div id="computing-prs-with-prsice" class="section level1">
-<h1>Computing PRS with PRSice</h1>
-<div id="ptsd-prs" class="section level2">
-<h2>PTSD-PRS</h2>
-<p>Prepare PTSD pheno file for PRSice</p>
-<p>Let’s prepare the pheno file for PRScise</p>
+<div id="prepare-ptsd-pheno-file-for-prsice" class="section level2">
+<h2>Prepare PTSD pheno file for PRSice</h2>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucGhlbm9fZmlsZV9zdGF0dXMgPC0gcmVhZF9kZWxpbShcIi9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvZmNfcHRzZC9waGVub19maWxlX3N0YXR1c1wiLCBjb2xfbmFtZXMgPSBUUlVFLCBkZWxpbSA9IFwiXFx0XCIpICU+JSBcbiAgZmlsdGVyKCFpcy5uYShJRCkpICU+JSBcbiAgZmlsdGVyKCFpcy5uYShQVFNEX3N0YXR1cykpICU+JSBcbiAgbXV0YXRlKElEID0gcGFzdGUoXCJTVEVULVwiLElELHNlcCA9IFwiXCIpKSAlPiUgXG4gIG11dGF0ZShQVFNEX3N0YXR1cyA9IFBUU0Rfc3RhdHVzLTEpXG5cbndyaXRlLnRhYmxlKHBoZW5vX2ZpbGVfc3RhdHVzLCBcIi9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvZmNfcHRzZC9waGVub19maWxlX3N0YXR1czJcIiwgcm93Lm5hbWVzID0gRkFMU0UsIGNvbC5uYW1lcyA9IEZBTFNFLCBxdW90ZSA9IEZBTFNFKVxuXG5gYGAifQ== -->
-<pre class="r"><code>pheno_file_status &lt;- read_delim(&quot;/data/humgen/burook/FC_analysis/fc_ptsd/pheno_file_status&quot;, col_names = TRUE, delim = &quot;\t&quot;) %&gt;% 
-  filter(!is.na(ID)) %&gt;% 
-  filter(!is.na(PTSD_status)) %&gt;% 
-  mutate(ID = paste(&quot;STET-&quot;,ID,sep = &quot;&quot;)) %&gt;% 
-  mutate(PTSD_status = PTSD_status-1)
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBwaGVub19maWxlX3N0YXR1cyA8LSByZWFkX2RlbGltKFwiL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkL3BoZW5vX2ZpbGVfc3RhdHVzXCIsIGNvbF9uYW1lcyA9IFRSVUUsIGRlbGltID0gXCJcXHRcIikgJT4lIFxuIyAgIGZpbHRlcighaXMubmEoSUQpKSAlPiUgXG4jICAgZmlsdGVyKCFpcy5uYShQVFNEX3N0YXR1cykpICU+JSBcbiMgICBtdXRhdGUoSUQgPSBwYXN0ZShcIlNURVQtXCIsSUQsc2VwID0gXCJcIikpICU+JSBcbiMgICBtdXRhdGUoUFRTRF9zdGF0dXMgPSBQVFNEX3N0YXR1cy0xKSBcbiMgXG4jIHdyaXRlLnRhYmxlKHBoZW5vX2ZpbGVfc3RhdHVzLCBcIi9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvZmNfcHRzZC9waGVub19maWxlX3N0YXR1czJcIiwgcm93Lm5hbWVzID0gRkFMU0UsIGNvbC5uYW1lcyA9IEZBTFNFLCBxdW90ZSA9IEZBTFNFKVxuXG4jIGFsbCBzYW1wbGVzXG50MSA8LSByZWFkX2RlbGltKFwiL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy90YWJsZV9wcmVkXCIsIGNvbF9uYW1lcyA9IFRSVUUsIGRlbGltID0gXCIgXCIpIFxucGhlbm9fZmlsZV9zdGF0dXMgPC0gcmVhZF9kZWxpbShcIi9kYXRhL2h1bWdlbi9idXJvb2svZGF0YV9yYXcvZmMvY2xpbmljYWwvRkNfZGF0YV9mb3JfUEdNLnR4dFwiLCBjb2xfbmFtZXMgPSBUUlVFLCBkZWxpbSA9IFwiXFx0XCIpICU+JSBcbiAgbXV0YXRlKElEPWFzLmNoYXJhY3RlcihJRCkpICU+JSBcbiAgaW5uZXJfam9pbih0MSwgYnk9YyhcIklEXCI9XCJTYW1wbGVcIikpICU+JSBcbiAgbXV0YXRlKElJRCA9IHN0cl9zdWIoSUlELGVuZCA9IC0zKSkgJT4lIFxuICBtdXRhdGUoUFRTRF9zdGF0dXMgPSBmYWN0b3IoUFRTRF9zdGF0dXMsIGxhYmVscyA9YygwLDEpKSkgJT4lIFxuICBzdWJzZXQoc2VsZWN0PWMoXCJJSURcIixcIlBUU0Rfc3RhdHVzXCIpKSAlPiVcbiAgZmlsdGVyKCFpcy5uYShQVFNEX3N0YXR1cykpXG5cbndyaXRlLnRhYmxlKHBoZW5vX2ZpbGVfc3RhdHVzLCBcIi9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvZmNfcHRzZC9waGVub19maWxlX3N0YXR1czJcIiwgcm93Lm5hbWVzID0gRkFMU0UsIGNvbC5uYW1lcyA9IEZBTFNFLCBxdW90ZSA9IEZBTFNFKVxuXG5cbiMgQUZSIGFuY2VzdHJ5IHNhbXBsZXNcbnBoZW5vX2ZpbGVfc3RhdHVzX2FmciA8LSByZWFkX2RlbGltKFwiL2RhdGEvaHVtZ2VuL2J1cm9vay9kYXRhX3Jhdy9mYy9jbGluaWNhbC9GQ19kYXRhX2Zvcl9QR00udHh0XCIsIGNvbF9uYW1lcyA9IFRSVUUsIGRlbGltID0gXCJcXHRcIikgJT4lIFxuICBtdXRhdGUoSUQ9YXMuY2hhcmFjdGVyKElEKSkgJT4lIFxuICBpbm5lcl9qb2luKHQxLCBieT1jKFwiSURcIj1cIlNhbXBsZVwiKSkgJT4lIFxuICBmaWx0ZXIocHJlZHRyZWU9PSdBRlInKSAlPiVcbiAgbXV0YXRlKElJRCA9IHN0cl9zdWIoSUlELGVuZCA9IC0zKSkgJT4lIFxuICBtdXRhdGUoUFRTRF9zdGF0dXMgPSBmYWN0b3IoUFRTRF9zdGF0dXMsIGxhYmVscyA9YygwLDEpKSkgJT4lIFxuICBzdWJzZXQoc2VsZWN0PWMoXCJJSURcIixcIlBUU0Rfc3RhdHVzXCIpKSAlPiVcbiAgZmlsdGVyKCFpcy5uYShQVFNEX3N0YXR1cykpXG5cbndyaXRlLnRhYmxlKHBoZW5vX2ZpbGVfc3RhdHVzX2FmciwgXCIvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2RfYWZyL3BoZW5vX2ZpbGVfc3RhdHVzMl9hZnJcIiwgcm93Lm5hbWVzID0gRkFMU0UsIGNvbC5uYW1lcyA9IEZBTFNFLCBxdW90ZSA9IEZBTFNFKVxuXG5cbiMgbm9uLUFGUiBhbmNlc3RyeSBzYW1wbGVzXG5waGVub19maWxlX3N0YXR1c19ub25hZnIgPC0gcmVhZF9kZWxpbShcIi9kYXRhL2h1bWdlbi9idXJvb2svZGF0YV9yYXcvZmMvY2xpbmljYWwvRkNfZGF0YV9mb3JfUEdNLnR4dFwiLCBjb2xfbmFtZXMgPSBUUlVFLCBkZWxpbSA9IFwiXFx0XCIpICU+JSBcbiAgbXV0YXRlKElEPWFzLmNoYXJhY3RlcihJRCkpICU+JSBcbiAgaW5uZXJfam9pbih0MSwgYnk9YyhcIklEXCI9XCJTYW1wbGVcIikpICU+JSBcbiAgZmlsdGVyKHByZWR0cmVlIT0nQUZSJykgJT4lXG4gIG11dGF0ZShJSUQgPSBzdHJfc3ViKElJRCxlbmQgPSAtMykpICU+JSBcbiAgbXV0YXRlKFBUU0Rfc3RhdHVzID0gZmFjdG9yKFBUU0Rfc3RhdHVzLCBsYWJlbHMgPWMoMCwxKSkpICU+JSBcbiAgc3Vic2V0KHNlbGVjdD1jKFwiSUlEXCIsXCJQVFNEX3N0YXR1c1wiKSkgJT4lXG4gIGZpbHRlcighaXMubmEoUFRTRF9zdGF0dXMpKVxuXG53cml0ZS50YWJsZShwaGVub19maWxlX3N0YXR1c19ub25hZnIsIFwiL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkX25vbmFmci9waGVub19maWxlX3N0YXR1czJfbm9uYWZyXCIsIHJvdy5uYW1lcyA9IEZBTFNFLCBjb2wubmFtZXMgPSBGQUxTRSwgcXVvdGUgPSBGQUxTRSlcbmBgYCJ9 -->
+<pre class="r"><code># pheno_file_status &lt;- read_delim(&quot;/data/humgen/burook/FC_analysis/fc_ptsd/pheno_file_status&quot;, col_names = TRUE, delim = &quot;\t&quot;) %&gt;% 
+#   filter(!is.na(ID)) %&gt;% 
+#   filter(!is.na(PTSD_status)) %&gt;% 
+#   mutate(ID = paste(&quot;STET-&quot;,ID,sep = &quot;&quot;)) %&gt;% 
+#   mutate(PTSD_status = PTSD_status-1) 
+# 
+# write.table(pheno_file_status, &quot;/data/humgen/burook/FC_analysis/fc_ptsd/pheno_file_status2&quot;, row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+# all samples
+t1 &lt;- read_delim(&quot;/data/humgen/burook/FC_analysis/table_pred&quot;, col_names = TRUE, delim = &quot; &quot;) 
+pheno_file_status &lt;- read_delim(&quot;/data/humgen/burook/data_raw/fc/clinical/FC_data_for_PGM.txt&quot;, col_names = TRUE, delim = &quot;\t&quot;) %&gt;% 
+  mutate(ID=as.character(ID)) %&gt;% 
+  inner_join(t1, by=c(&quot;ID&quot;=&quot;Sample&quot;)) %&gt;% 
+  mutate(IID = str_sub(IID,end = -3)) %&gt;% 
+  mutate(PTSD_status = factor(PTSD_status, labels =c(0,1))) %&gt;% 
+  subset(select=c(&quot;IID&quot;,&quot;PTSD_status&quot;)) %&gt;%
+  filter(!is.na(PTSD_status))
 
 write.table(pheno_file_status, &quot;/data/humgen/burook/FC_analysis/fc_ptsd/pheno_file_status2&quot;, row.names = FALSE, col.names = FALSE, quote = FALSE)
-</code></pre>
+
+
+# AFR ancestry samples
+pheno_file_status_afr &lt;- read_delim(&quot;/data/humgen/burook/data_raw/fc/clinical/FC_data_for_PGM.txt&quot;, col_names = TRUE, delim = &quot;\t&quot;) %&gt;% 
+  mutate(ID=as.character(ID)) %&gt;% 
+  inner_join(t1, by=c(&quot;ID&quot;=&quot;Sample&quot;)) %&gt;% 
+  filter(predtree=='AFR') %&gt;%
+  mutate(IID = str_sub(IID,end = -3)) %&gt;% 
+  mutate(PTSD_status = factor(PTSD_status, labels =c(0,1))) %&gt;% 
+  subset(select=c(&quot;IID&quot;,&quot;PTSD_status&quot;)) %&gt;%
+  filter(!is.na(PTSD_status))
+
+write.table(pheno_file_status_afr, &quot;/data/humgen/burook/FC_analysis/fc_ptsd_afr/pheno_file_status2_afr&quot;, row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+
+# non-AFR ancestry samples
+pheno_file_status_nonafr &lt;- read_delim(&quot;/data/humgen/burook/data_raw/fc/clinical/FC_data_for_PGM.txt&quot;, col_names = TRUE, delim = &quot;\t&quot;) %&gt;% 
+  mutate(ID=as.character(ID)) %&gt;% 
+  inner_join(t1, by=c(&quot;ID&quot;=&quot;Sample&quot;)) %&gt;% 
+  filter(predtree!='AFR') %&gt;%
+  mutate(IID = str_sub(IID,end = -3)) %&gt;% 
+  mutate(PTSD_status = factor(PTSD_status, labels =c(0,1))) %&gt;% 
+  subset(select=c(&quot;IID&quot;,&quot;PTSD_status&quot;)) %&gt;%
+  filter(!is.na(PTSD_status))
+
+write.table(pheno_file_status_nonafr, &quot;/data/humgen/burook/FC_analysis/fc_ptsd_nonafr/pheno_file_status2_nonafr&quot;, row.names = FALSE, col.names = FALSE, quote = FALSE)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Quality control of the imputed data.</p>
+<p>Filterinf with some quality control parameters of the imputed data.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
 <!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxuY2QgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkXG5cbi9QSFNob21lL2JtMzYzL2Jpbi9wbGluazIgXFxcbiAgLS1iZmlsZSAvZGF0YS9odW1nZW4vYnVyb29rL2RhdGFfaW1wdXRlZC9mYy9jb2JnX2Rpcl9nZW5vbWVfd2lkZS9wdHNfZmMxX21peF9ibS1xYzEuaGcxOS5jaC5mbC5iZ24gXFxcbiAgLS1tYWYgMC4wMSBcXFxuICAtLWdlbm8gMC4wMSBcXFxuICAtLW1pbmQgMC4xIFxcXG4gIC0taHdlIDAuMDAxIFxcXG4gIC0tbWFrZS1iZWQgXFxcbiAgLS1vdXQgdG1wX2ZjMVxuXG5gYGAifQ== -->
@@ -2952,9 +2985,13 @@ write.table(pheno_file_status, &quot;/data/humgen/burook/FC_analysis/fc_ptsd/phe
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+</div>
+<div id="computing-prs-with-prsice" class="section level2">
+<h2>computing PRS with PRSice</h2>
+<p>All samples in bulk</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxuIyB3aXRoIGZyZWV6ZS0yIFBHQy1QVFNEIHN1bW0gc3RhdHNcblIgLS1maWxlPS9QSFNob21lL2JtMzYzL2Jpbi9QUlNpY2VfdjEuMjUvUFJTaWNlX3YxLjI1LlIgLXEgLS1hcmdzICBcXFxuICBwbGluayAvUEhTaG9tZS9ibTM2My9iaW4vcGxpbmsyIFxcXG4gIGJhc2UgL2RhdGEvaHVtZ2VuL2J1cm9vay9zdW1fc3RhdHMvcHRzX2V1cl9mcmVlemUyX292ZXJhbGwucmVzdWx0cy5leER1cFZhciBcXFxuICB0YXJnZXQgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkL3RtcF9mYzEgXFxcbiAgcGhlbm8uZmlsZSAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2QvcGhlbm9fZmlsZV9zdGF0dXMyIFxcXG4gIGJpbmFyeS50YXJnZXQgVCBcXFxuICBjb3ZhcmlhdGVzIEMxLEMyLEMzLEM0LEM1LEM2LEM3LEM4LEM5LEMxMCBcXFxuICBjbHVtcC5zbnBzIFQgXFxcbiAgcHJ1bmUuc25wcyBGIFxcXG4gIHF1YW50aWxlcyBUIFxcXG4gIGZpZ25hbWUgZmNfcHRzZCBcXFxuICB3ZCAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2QvXG5gYGAifQ== -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxuIyB3aXRoIGZyZWV6ZS0yIFBHQy1QVFNEIHN1bW0gc3RhdHNcblIgLS1maWxlPS9QSFNob21lL2JtMzYzL2Jpbi9QUlNpY2VfdjEuMjUvUFJTaWNlX3YxLjI1LlIgLXEgLS1hcmdzICBcXFxuICBwbGluayAvUEhTaG9tZS9ibTM2My9iaW4vcGxpbmsyIFxcXG4gIGJhc2UgL2RhdGEvaHVtZ2VuL2J1cm9vay9zdW1fc3RhdHMvcHRzX2V1cl9mcmVlemUyX292ZXJhbGwucmVzdWx0cy5leER1cFZhciBcXFxuICB0YXJnZXQgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkL3RtcF9mYzEgXFxcbiAgcGhlbm8uZmlsZSAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2QvcGhlbm9fZmlsZV9zdGF0dXMyIFxcXG4gIGJpbmFyeS50YXJnZXQgVCBcXFxuICBjb3ZhcmlhdGVzIEMxLEMyLEMzLEM0LEM1LEM2LEM3LEM4LEM5LEMxMCBcXFxuICBmaWduYW1lIGZjX3B0c2QgXFxcbiAgd2QgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkL1xuICBcbiMgIGJhc2UgL2RhdGEvaHVtZ2VuL2J1cm9vay9zdW1fc3RhdHMvcHRzX2V1cl9mcmVlemUyX292ZXJhbGwucmVzdWx0cyBcXFxuYGBgIn0= -->
 <pre class="bash"><code># with freeze-2 PGC-PTSD summ stats
 R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
   plink /PHShome/bm363/bin/plink2 \
@@ -2963,26 +3000,85 @@ R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
   pheno.file /data/humgen/burook/FC_analysis/fc_ptsd/pheno_file_status2 \
   binary.target T \
   covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
-  clump.snps T \
-  prune.snps F \
-  quantiles T \
   figname fc_ptsd \
-  wd /data/humgen/burook/FC_analysis/fc_ptsd/</code></pre>
+  wd /data/humgen/burook/FC_analysis/fc_ptsd/
+  
+#  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results \</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+<p>Non-AFR subsample</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxubHMgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkL1xuYGBgIn0= -->
-<pre class="bash"><code>ls /data/humgen/burook/FC_analysis/fc_ptsd/</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxuIyB3aXRoIGZyZWV6ZS0yIFBHQy1QVFNEIHN1bW0gc3RhdHNcblIgLS1maWxlPS9QSFNob21lL2JtMzYzL2Jpbi9QUlNpY2VfdjEuMjUvUFJTaWNlX3YxLjI1LlIgLXEgLS1hcmdzICBcXFxuICBwbGluayAvUEhTaG9tZS9ibTM2My9iaW4vcGxpbmsyIFxcXG4gIGJhc2UgL2RhdGEvaHVtZ2VuL2J1cm9vay9zdW1fc3RhdHMvcHRzX2V1cl9mcmVlemUyX292ZXJhbGwucmVzdWx0cy5leER1cFZhciBcXFxuICB0YXJnZXQgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkL3RtcF9mYzEgXFxcbiAgcGhlbm8uZmlsZSAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2Rfbm9uYWZyL3BoZW5vX2ZpbGVfc3RhdHVzMl9ub25hZnIgXFxcbiAgYmluYXJ5LnRhcmdldCBUIFxcXG4gIHNsb3dlciAwLjA1IFxcXG4gIHNpbmMgMC4xIFxcXG4gIHN1cHBlciAxIFxcXG4gIGNvdmFyaWF0ZXMgQzEsQzIsQzMsQzQsQzUsQzYsQzcsQzgsQzksQzEwIFxcXG4gIGZpZ25hbWUgZmNfcHRzZF9ub25hZnIgXFxcbiAgd2QgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkX25vbmFmci9cbiAgXG4jICBiYXNlIC9kYXRhL2h1bWdlbi9idXJvb2svc3VtX3N0YXRzL3B0c19ldXJfZnJlZXplMl9vdmVyYWxsLnJlc3VsdHMgXFxcbmBgYCJ9 -->
+<pre class="bash"><code># with freeze-2 PGC-PTSD summ stats
+R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
+  plink /PHShome/bm363/bin/plink2 \
+  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results.exDupVar \
+  target /data/humgen/burook/FC_analysis/fc_ptsd/tmp_fc1 \
+  pheno.file /data/humgen/burook/FC_analysis/fc_ptsd_nonafr/pheno_file_status2_nonafr \
+  binary.target T \
+  slower 0.05 \
+  sinc 0.1 \
+  supper 1 \
+  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
+  figname fc_ptsd_nonafr \
+  wd /data/humgen/burook/FC_analysis/fc_ptsd_nonafr/
+  
+#  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results \</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Sine Ft. Campbell is part of PGC freeze-2 study, the result is inflated (R^2~50%). So let’s use freeze-1 summary statistics.</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxuIyB3aXRoIGZyZWV6ZS0yIFBHQy1QVFNEIHN1bW0gc3RhdHNcblIgLS1maWxlPS9QSFNob21lL2JtMzYzL2Jpbi9QUlNpY2VfdjEuMjUvUFJTaWNlX3YxLjI1LlIgLXEgLS1hcmdzICBcXFxuICBwbGluayAvUEhTaG9tZS9ibTM2My9iaW4vcGxpbmsyIFxcXG4gIGJhc2UgL2RhdGEvaHVtZ2VuL2J1cm9vay9zdW1fc3RhdHMvR1dBU19zdW1tYXJ5X3N0YXRpc3RpY3NfZGF0YXNldHNfb2xkL1NPUlRFRF9QVFNEX0VBOV9BTExfc3R1ZHlfc3BlY2lmaWNfUENzMTIudHh0IFxcXG4gIHRhcmdldCAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2QvdG1wX2ZjMSBcXFxuICBwaGVuby5maWxlIC9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvZmNfcHRzZF9ub25hZnIvcGhlbm9fZmlsZV9zdGF0dXMyX25vbmFmciBcXFxuICBiaW5hcnkudGFyZ2V0IFQgXFxcbiAgY292YXJpYXRlcyBDMSxDMixDMyxDNCxDNSxDNixDNyxDOCxDOSxDMTAgXFxcbiAgZmlnbmFtZSBmY19wdHNkX25vbmFmcl9mcmVlejEgXFxcbiAgd2QgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkX25vbmFmci9cbiAgXG5cbiMgIGJhc2UgL2RhdGEvaHVtZ2VuL2J1cm9vay9zdW1fc3RhdHMvcHRzX2V1cl9mcmVlemUyX292ZXJhbGwucmVzdWx0cyBcXFxuYGBgIn0= -->
+<pre class="bash"><code># with freeze-2 PGC-PTSD summ stats
+R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
+  plink /PHShome/bm363/bin/plink2 \
+  base /data/humgen/burook/sum_stats/GWAS_summary_statistics_datasets_old/SORTED_PTSD_EA9_ALL_study_specific_PCs12.txt \
+  target /data/humgen/burook/FC_analysis/fc_ptsd/tmp_fc1 \
+  pheno.file /data/humgen/burook/FC_analysis/fc_ptsd_nonafr/pheno_file_status2_nonafr \
+  binary.target T \
+  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
+  figname fc_ptsd_nonafr_freez1 \
+  wd /data/humgen/burook/FC_analysis/fc_ptsd_nonafr/
+  
+
+#  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results \</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>AFR subsample</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgYmFzaFxuIyB3aXRoIGZyZWV6ZS0yIFBHQy1QVFNEIHN1bW0gc3RhdHNcblIgLS1maWxlPS9QSFNob21lL2JtMzYzL2Jpbi9QUlNpY2VfdjEuMjUvUFJTaWNlX3YxLjI1LlIgLXEgLS1hcmdzICBcXFxuICBwbGluayAvUEhTaG9tZS9ibTM2My9iaW4vcGxpbmsyIFxcXG4gIGJhc2UgL2RhdGEvaHVtZ2VuL2J1cm9vay9zdW1fc3RhdHMvcHRzX2V1cl9mcmVlemUyX292ZXJhbGwucmVzdWx0cy5leER1cFZhciBcXFxuICB0YXJnZXQgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkL3RtcF9mYzEgXFxcbiAgcGhlbm8uZmlsZSAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2RfYWZyL3BoZW5vX2ZpbGVfc3RhdHVzMl9hZnIgXFxcbiAgYmluYXJ5LnRhcmdldCBUIFxcXG4gIHNsb3dlciAwLjEgXFxcbiAgc2luYyAwLjAxIFxcXG4gIHN1cHBlciAwLjQgXFxcbiAgY292YXJpYXRlcyBDMSxDMixDMyxDNCxDNSxDNixDNyxDOCxDOSxDMTAgXFxcbiAgZmlnbmFtZSBmY19wdHNkX2FmciBcXFxuICB3ZCAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2RfYWZyL1xuICBcbiMgIGNsdW1wLnNucHMgVCBcXFxuIyAgcHJ1bmUuc25wcyBGIFxcXG4jICBxdWFudGlsZXMgVCBcXFxuXG4jICBiYXNlIC9kYXRhL2h1bWdlbi9idXJvb2svc3VtX3N0YXRzL3B0c19ldXJfZnJlZXplMl9vdmVyYWxsLnJlc3VsdHMgXFxcbmBgYCJ9 -->
+<pre class="bash"><code># with freeze-2 PGC-PTSD summ stats
+R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
+  plink /PHShome/bm363/bin/plink2 \
+  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results.exDupVar \
+  target /data/humgen/burook/FC_analysis/fc_ptsd/tmp_fc1 \
+  pheno.file /data/humgen/burook/FC_analysis/fc_ptsd_afr/pheno_file_status2_afr \
+  binary.target T \
+  slower 0.1 \
+  sinc 0.01 \
+  supper 0.4 \
+  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
+  figname fc_ptsd_afr \
+  wd /data/humgen/burook/FC_analysis/fc_ptsd_afr/
+  
+#  clump.snps T \
+#  prune.snps F \
+#  quantiles T \
+
+#  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results \</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 </div>
-</div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiRF9QUlNfY29tcHV0YXRpb25fYW5kX2FuYWx5c2lzIgpvdXRwdXQ6CiAgaHRtbF9ub3RlYm9vazoKICAgIHRvYzogeWVzCiAgICB0b2NfZmxvYXQ6IHllcwpkYXRlOiAiTWF5IDUsIDIwMjAiCi0tLQoKCmBgYHtyfQoubGliUGF0aHMoIGMoICIvb3B0L1IvMy42LjIvbGliL1IvbGlicmFyeSIgLCAubGliUGF0aHMoKSApICkKLmxpYlBhdGhzKCkKYGBgCgpgYGB7cn0KbGlicmFyeSh0aWR5dmVyc2UpCmxpYnJhcnkocmVhZHhsKQpgYGAKCgojIENvbXB1dGluZyBQUlMgd2l0aCAgUFJTaWNlCgojIyBQVFNELVBSUwoKUHJlcGFyZSBQVFNEIHBoZW5vIGZpbGUgZm9yIFBSU2ljZQoKCkxldCdzIHByZXBhcmUgdGhlIHBoZW5vIGZpbGUgZm9yIFBSU2Npc2UKYGBge3J9CnBoZW5vX2ZpbGVfc3RhdHVzIDwtIHJlYWRfZGVsaW0oIi9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvZmNfcHRzZC9waGVub19maWxlX3N0YXR1cyIsIGNvbF9uYW1lcyA9IFRSVUUsIGRlbGltID0gIlx0IikgJT4lIAogIGZpbHRlcighaXMubmEoSUQpKSAlPiUgCiAgZmlsdGVyKCFpcy5uYShQVFNEX3N0YXR1cykpICU+JSAKICBtdXRhdGUoSUQgPSBwYXN0ZSgiU1RFVC0iLElELHNlcCA9ICIiKSkgJT4lIAogIG11dGF0ZShQVFNEX3N0YXR1cyA9IFBUU0Rfc3RhdHVzLTEpCgp3cml0ZS50YWJsZShwaGVub19maWxlX3N0YXR1cywgIi9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvZmNfcHRzZC9waGVub19maWxlX3N0YXR1czIiLCByb3cubmFtZXMgPSBGQUxTRSwgY29sLm5hbWVzID0gRkFMU0UsIHF1b3RlID0gRkFMU0UpCgpgYGAKClF1YWxpdHkgY29udHJvbCBvZiB0aGUgaW1wdXRlZCBkYXRhLgpgYGB7YmFzaH0KY2QgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkCgovUEhTaG9tZS9ibTM2My9iaW4vcGxpbmsyIFwKICAtLWJmaWxlIC9kYXRhL2h1bWdlbi9idXJvb2svZGF0YV9pbXB1dGVkL2ZjL2NvYmdfZGlyX2dlbm9tZV93aWRlL3B0c19mYzFfbWl4X2JtLXFjMS5oZzE5LmNoLmZsLmJnbiBcCiAgLS1tYWYgMC4wMSBcCiAgLS1nZW5vIDAuMDEgXAogIC0tbWluZCAwLjEgXAogIC0taHdlIDAuMDAxIFwKICAtLW1ha2UtYmVkIFwKICAtLW91dCB0bXBfZmMxCgpgYGAKCgoKYGBge2Jhc2h9CiMgd2l0aCBmcmVlemUtMiBQR0MtUFRTRCBzdW1tIHN0YXRzClIgLS1maWxlPS9QSFNob21lL2JtMzYzL2Jpbi9QUlNpY2VfdjEuMjUvUFJTaWNlX3YxLjI1LlIgLXEgLS1hcmdzICBcCiAgcGxpbmsgL1BIU2hvbWUvYm0zNjMvYmluL3BsaW5rMiBcCiAgYmFzZSAvZGF0YS9odW1nZW4vYnVyb29rL3N1bV9zdGF0cy9wdHNfZXVyX2ZyZWV6ZTJfb3ZlcmFsbC5yZXN1bHRzLmV4RHVwVmFyIFwKICB0YXJnZXQgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkL3RtcF9mYzEgXAogIHBoZW5vLmZpbGUgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkL3BoZW5vX2ZpbGVfc3RhdHVzMiBcCiAgYmluYXJ5LnRhcmdldCBUIFwKICBjb3ZhcmlhdGVzIEMxLEMyLEMzLEM0LEM1LEM2LEM3LEM4LEM5LEMxMCBcCiAgY2x1bXAuc25wcyBUIFwKICBwcnVuZS5zbnBzIEYgXAogIHF1YW50aWxlcyBUIFwKICBmaWduYW1lIGZjX3B0c2QgXAogIHdkIC9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvZmNfcHRzZC8KYGBgCgpgYGB7YmFzaH0KbHMgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkLwpgYGAKCg==</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiRF9QUlNfY29tcHV0YXRpb25fYW5kX2FuYWx5c2lzIgpvdXRwdXQ6CiAgaHRtbF9ub3RlYm9vazoKICAgIHRvYzogeWVzCiAgICB0b2NfZmxvYXQ6IHllcwpkYXRlOiAiTWF5IDUsIDIwMjAiCi0tLQoKCmBgYHtyfQoubGliUGF0aHMoIGMoICIvb3B0L1IvMy42LjIvbGliL1IvbGlicmFyeSIgLCAubGliUGF0aHMoKSApICkKLmxpYlBhdGhzKCkKYGBgCgpgYGB7cn0KbGlicmFyeSh0aWR5dmVyc2UpCmxpYnJhcnkocmVhZHhsKQpgYGAKCgoKIyMgUHJlcGFyZSBQVFNEIHBoZW5vIGZpbGUgZm9yIFBSU2ljZQoKYGBge3J9CiMgcGhlbm9fZmlsZV9zdGF0dXMgPC0gcmVhZF9kZWxpbSgiL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkL3BoZW5vX2ZpbGVfc3RhdHVzIiwgY29sX25hbWVzID0gVFJVRSwgZGVsaW0gPSAiXHQiKSAlPiUgCiMgICBmaWx0ZXIoIWlzLm5hKElEKSkgJT4lIAojICAgZmlsdGVyKCFpcy5uYShQVFNEX3N0YXR1cykpICU+JSAKIyAgIG11dGF0ZShJRCA9IHBhc3RlKCJTVEVULSIsSUQsc2VwID0gIiIpKSAlPiUgCiMgICBtdXRhdGUoUFRTRF9zdGF0dXMgPSBQVFNEX3N0YXR1cy0xKSAKIyAKIyB3cml0ZS50YWJsZShwaGVub19maWxlX3N0YXR1cywgIi9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvZmNfcHRzZC9waGVub19maWxlX3N0YXR1czIiLCByb3cubmFtZXMgPSBGQUxTRSwgY29sLm5hbWVzID0gRkFMU0UsIHF1b3RlID0gRkFMU0UpCgojIGFsbCBzYW1wbGVzCnQxIDwtIHJlYWRfZGVsaW0oIi9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvdGFibGVfcHJlZCIsIGNvbF9uYW1lcyA9IFRSVUUsIGRlbGltID0gIiAiKSAKcGhlbm9fZmlsZV9zdGF0dXMgPC0gcmVhZF9kZWxpbSgiL2RhdGEvaHVtZ2VuL2J1cm9vay9kYXRhX3Jhdy9mYy9jbGluaWNhbC9GQ19kYXRhX2Zvcl9QR00udHh0IiwgY29sX25hbWVzID0gVFJVRSwgZGVsaW0gPSAiXHQiKSAlPiUgCiAgbXV0YXRlKElEPWFzLmNoYXJhY3RlcihJRCkpICU+JSAKICBpbm5lcl9qb2luKHQxLCBieT1jKCJJRCI9IlNhbXBsZSIpKSAlPiUgCiAgbXV0YXRlKElJRCA9IHN0cl9zdWIoSUlELGVuZCA9IC0zKSkgJT4lIAogIG11dGF0ZShQVFNEX3N0YXR1cyA9IGZhY3RvcihQVFNEX3N0YXR1cywgbGFiZWxzID1jKDAsMSkpKSAlPiUgCiAgc3Vic2V0KHNlbGVjdD1jKCJJSUQiLCJQVFNEX3N0YXR1cyIpKSAlPiUKICBmaWx0ZXIoIWlzLm5hKFBUU0Rfc3RhdHVzKSkKCndyaXRlLnRhYmxlKHBoZW5vX2ZpbGVfc3RhdHVzLCAiL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkL3BoZW5vX2ZpbGVfc3RhdHVzMiIsIHJvdy5uYW1lcyA9IEZBTFNFLCBjb2wubmFtZXMgPSBGQUxTRSwgcXVvdGUgPSBGQUxTRSkKCgojIEFGUiBhbmNlc3RyeSBzYW1wbGVzCnBoZW5vX2ZpbGVfc3RhdHVzX2FmciA8LSByZWFkX2RlbGltKCIvZGF0YS9odW1nZW4vYnVyb29rL2RhdGFfcmF3L2ZjL2NsaW5pY2FsL0ZDX2RhdGFfZm9yX1BHTS50eHQiLCBjb2xfbmFtZXMgPSBUUlVFLCBkZWxpbSA9ICJcdCIpICU+JSAKICBtdXRhdGUoSUQ9YXMuY2hhcmFjdGVyKElEKSkgJT4lIAogIGlubmVyX2pvaW4odDEsIGJ5PWMoIklEIj0iU2FtcGxlIikpICU+JSAKICBmaWx0ZXIocHJlZHRyZWU9PSdBRlInKSAlPiUKICBtdXRhdGUoSUlEID0gc3RyX3N1YihJSUQsZW5kID0gLTMpKSAlPiUgCiAgbXV0YXRlKFBUU0Rfc3RhdHVzID0gZmFjdG9yKFBUU0Rfc3RhdHVzLCBsYWJlbHMgPWMoMCwxKSkpICU+JSAKICBzdWJzZXQoc2VsZWN0PWMoIklJRCIsIlBUU0Rfc3RhdHVzIikpICU+JQogIGZpbHRlcighaXMubmEoUFRTRF9zdGF0dXMpKQoKd3JpdGUudGFibGUocGhlbm9fZmlsZV9zdGF0dXNfYWZyLCAiL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkX2Fmci9waGVub19maWxlX3N0YXR1czJfYWZyIiwgcm93Lm5hbWVzID0gRkFMU0UsIGNvbC5uYW1lcyA9IEZBTFNFLCBxdW90ZSA9IEZBTFNFKQoKCiMgbm9uLUFGUiBhbmNlc3RyeSBzYW1wbGVzCnBoZW5vX2ZpbGVfc3RhdHVzX25vbmFmciA8LSByZWFkX2RlbGltKCIvZGF0YS9odW1nZW4vYnVyb29rL2RhdGFfcmF3L2ZjL2NsaW5pY2FsL0ZDX2RhdGFfZm9yX1BHTS50eHQiLCBjb2xfbmFtZXMgPSBUUlVFLCBkZWxpbSA9ICJcdCIpICU+JSAKICBtdXRhdGUoSUQ9YXMuY2hhcmFjdGVyKElEKSkgJT4lIAogIGlubmVyX2pvaW4odDEsIGJ5PWMoIklEIj0iU2FtcGxlIikpICU+JSAKICBmaWx0ZXIocHJlZHRyZWUhPSdBRlInKSAlPiUKICBtdXRhdGUoSUlEID0gc3RyX3N1YihJSUQsZW5kID0gLTMpKSAlPiUgCiAgbXV0YXRlKFBUU0Rfc3RhdHVzID0gZmFjdG9yKFBUU0Rfc3RhdHVzLCBsYWJlbHMgPWMoMCwxKSkpICU+JSAKICBzdWJzZXQoc2VsZWN0PWMoIklJRCIsIlBUU0Rfc3RhdHVzIikpICU+JQogIGZpbHRlcighaXMubmEoUFRTRF9zdGF0dXMpKQoKd3JpdGUudGFibGUocGhlbm9fZmlsZV9zdGF0dXNfbm9uYWZyLCAiL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkX25vbmFmci9waGVub19maWxlX3N0YXR1czJfbm9uYWZyIiwgcm93Lm5hbWVzID0gRkFMU0UsIGNvbC5uYW1lcyA9IEZBTFNFLCBxdW90ZSA9IEZBTFNFKQpgYGAKCgpGaWx0ZXJpbmYgd2l0aCBzb21lIHF1YWxpdHkgY29udHJvbCBwYXJhbWV0ZXJzIG9mIHRoZSBpbXB1dGVkIGRhdGEuCmBgYHtiYXNofQpjZCAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2QKCi9QSFNob21lL2JtMzYzL2Jpbi9wbGluazIgXAogIC0tYmZpbGUgL2RhdGEvaHVtZ2VuL2J1cm9vay9kYXRhX2ltcHV0ZWQvZmMvY29iZ19kaXJfZ2Vub21lX3dpZGUvcHRzX2ZjMV9taXhfYm0tcWMxLmhnMTkuY2guZmwuYmduIFwKICAtLW1hZiAwLjAxIFwKICAtLWdlbm8gMC4wMSBcCiAgLS1taW5kIDAuMSBcCiAgLS1od2UgMC4wMDEgXAogIC0tbWFrZS1iZWQgXAogIC0tb3V0IHRtcF9mYzEKCmBgYAoKIyMgY29tcHV0aW5nIFBSUyB3aXRoIFBSU2ljZQoKQWxsIHNhbXBsZXMgaW4gYnVsawpgYGB7YmFzaH0KIyB3aXRoIGZyZWV6ZS0yIFBHQy1QVFNEIHN1bW0gc3RhdHMKUiAtLWZpbGU9L1BIU2hvbWUvYm0zNjMvYmluL1BSU2ljZV92MS4yNS9QUlNpY2VfdjEuMjUuUiAtcSAtLWFyZ3MgIFwKICBwbGluayAvUEhTaG9tZS9ibTM2My9iaW4vcGxpbmsyIFwKICBiYXNlIC9kYXRhL2h1bWdlbi9idXJvb2svc3VtX3N0YXRzL3B0c19ldXJfZnJlZXplMl9vdmVyYWxsLnJlc3VsdHMuZXhEdXBWYXIgXAogIHRhcmdldCAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2QvdG1wX2ZjMSBcCiAgcGhlbm8uZmlsZSAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2QvcGhlbm9fZmlsZV9zdGF0dXMyIFwKICBiaW5hcnkudGFyZ2V0IFQgXAogIGNvdmFyaWF0ZXMgQzEsQzIsQzMsQzQsQzUsQzYsQzcsQzgsQzksQzEwIFwKICBmaWduYW1lIGZjX3B0c2QgXAogIHdkIC9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvZmNfcHRzZC8KICAKIyAgYmFzZSAvZGF0YS9odW1nZW4vYnVyb29rL3N1bV9zdGF0cy9wdHNfZXVyX2ZyZWV6ZTJfb3ZlcmFsbC5yZXN1bHRzIFwKYGBgCgpOb24tQUZSIHN1YnNhbXBsZQpgYGB7YmFzaH0KIyB3aXRoIGZyZWV6ZS0yIFBHQy1QVFNEIHN1bW0gc3RhdHMKUiAtLWZpbGU9L1BIU2hvbWUvYm0zNjMvYmluL1BSU2ljZV92MS4yNS9QUlNpY2VfdjEuMjUuUiAtcSAtLWFyZ3MgIFwKICBwbGluayAvUEhTaG9tZS9ibTM2My9iaW4vcGxpbmsyIFwKICBiYXNlIC9kYXRhL2h1bWdlbi9idXJvb2svc3VtX3N0YXRzL3B0c19ldXJfZnJlZXplMl9vdmVyYWxsLnJlc3VsdHMuZXhEdXBWYXIgXAogIHRhcmdldCAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2QvdG1wX2ZjMSBcCiAgcGhlbm8uZmlsZSAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2Rfbm9uYWZyL3BoZW5vX2ZpbGVfc3RhdHVzMl9ub25hZnIgXAogIGJpbmFyeS50YXJnZXQgVCBcCiAgc2xvd2VyIDAuMDUgXAogIHNpbmMgMC4xIFwKICBzdXBwZXIgMSBcCiAgY292YXJpYXRlcyBDMSxDMixDMyxDNCxDNSxDNixDNyxDOCxDOSxDMTAgXAogIGZpZ25hbWUgZmNfcHRzZF9ub25hZnIgXAogIHdkIC9kYXRhL2h1bWdlbi9idXJvb2svRkNfYW5hbHlzaXMvZmNfcHRzZF9ub25hZnIvCiAgCiMgIGJhc2UgL2RhdGEvaHVtZ2VuL2J1cm9vay9zdW1fc3RhdHMvcHRzX2V1cl9mcmVlemUyX292ZXJhbGwucmVzdWx0cyBcCmBgYAoKClNpbmUgRnQuIENhbXBiZWxsIGlzIHBhcnQgb2YgUEdDIGZyZWV6ZS0yIHN0dWR5LCB0aGUgcmVzdWx0IGlzIGluZmxhdGVkIChSXjJ+NTAlKS4gU28gbGV0J3MgdXNlIGZyZWV6ZS0xIHN1bW1hcnkgc3RhdGlzdGljcy4KYGBge2Jhc2h9CiMgd2l0aCBmcmVlemUtMiBQR0MtUFRTRCBzdW1tIHN0YXRzClIgLS1maWxlPS9QSFNob21lL2JtMzYzL2Jpbi9QUlNpY2VfdjEuMjUvUFJTaWNlX3YxLjI1LlIgLXEgLS1hcmdzICBcCiAgcGxpbmsgL1BIU2hvbWUvYm0zNjMvYmluL3BsaW5rMiBcCiAgYmFzZSAvZGF0YS9odW1nZW4vYnVyb29rL3N1bV9zdGF0cy9HV0FTX3N1bW1hcnlfc3RhdGlzdGljc19kYXRhc2V0c19vbGQvU09SVEVEX1BUU0RfRUE5X0FMTF9zdHVkeV9zcGVjaWZpY19QQ3MxMi50eHQgXAogIHRhcmdldCAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2QvdG1wX2ZjMSBcCiAgcGhlbm8uZmlsZSAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2Rfbm9uYWZyL3BoZW5vX2ZpbGVfc3RhdHVzMl9ub25hZnIgXAogIGJpbmFyeS50YXJnZXQgVCBcCiAgY292YXJpYXRlcyBDMSxDMixDMyxDNCxDNSxDNixDNyxDOCxDOSxDMTAgXAogIGZpZ25hbWUgZmNfcHRzZF9ub25hZnJfZnJlZXoxIFwKICB3ZCAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2Rfbm9uYWZyLwogIAoKIyAgYmFzZSAvZGF0YS9odW1nZW4vYnVyb29rL3N1bV9zdGF0cy9wdHNfZXVyX2ZyZWV6ZTJfb3ZlcmFsbC5yZXN1bHRzIFwKYGBgCgoKQUZSIHN1YnNhbXBsZQpgYGB7YmFzaH0KIyB3aXRoIGZyZWV6ZS0yIFBHQy1QVFNEIHN1bW0gc3RhdHMKUiAtLWZpbGU9L1BIU2hvbWUvYm0zNjMvYmluL1BSU2ljZV92MS4yNS9QUlNpY2VfdjEuMjUuUiAtcSAtLWFyZ3MgIFwKICBwbGluayAvUEhTaG9tZS9ibTM2My9iaW4vcGxpbmsyIFwKICBiYXNlIC9kYXRhL2h1bWdlbi9idXJvb2svc3VtX3N0YXRzL3B0c19ldXJfZnJlZXplMl9vdmVyYWxsLnJlc3VsdHMuZXhEdXBWYXIgXAogIHRhcmdldCAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2QvdG1wX2ZjMSBcCiAgcGhlbm8uZmlsZSAvZGF0YS9odW1nZW4vYnVyb29rL0ZDX2FuYWx5c2lzL2ZjX3B0c2RfYWZyL3BoZW5vX2ZpbGVfc3RhdHVzMl9hZnIgXAogIGJpbmFyeS50YXJnZXQgVCBcCiAgc2xvd2VyIDAuMSBcCiAgc2luYyAwLjAxIFwKICBzdXBwZXIgMC40IFwKICBjb3ZhcmlhdGVzIEMxLEMyLEMzLEM0LEM1LEM2LEM3LEM4LEM5LEMxMCBcCiAgZmlnbmFtZSBmY19wdHNkX2FmciBcCiAgd2QgL2RhdGEvaHVtZ2VuL2J1cm9vay9GQ19hbmFseXNpcy9mY19wdHNkX2Fmci8KICAKIyAgY2x1bXAuc25wcyBUIFwKIyAgcHJ1bmUuc25wcyBGIFwKIyAgcXVhbnRpbGVzIFQgXAoKIyAgYmFzZSAvZGF0YS9odW1nZW4vYnVyb29rL3N1bV9zdGF0cy9wdHNfZXVyX2ZyZWV6ZTJfb3ZlcmFsbC5yZXN1bHRzIFwKYGBgCgoKCgoK</div>
 
 
 </div>

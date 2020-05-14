@@ -123,6 +123,25 @@ R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
 #  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results \
 ```
 
+
+Sine Ft. Campbell is part of PGC freeze-2 study, the result is inflated (R^2~50%). So let's use freeze-1 summary statistics.
+```{bash}
+# with freeze-2 PGC-PTSD summ stats
+R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
+  plink /PHShome/bm363/bin/plink2 \
+  base /data/humgen/burook/sum_stats/GWAS_summary_statistics_datasets_old/SORTED_PTSD_EA9_ALL_study_specific_PCs12.txt \
+  target /data/humgen/burook/FC_analysis/fc_ptsd/tmp_fc1 \
+  pheno.file /data/humgen/burook/FC_analysis/fc_ptsd_nonafr/pheno_file_status2_nonafr \
+  binary.target T \
+  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
+  figname fc_ptsd_nonafr_freez1 \
+  wd /data/humgen/burook/FC_analysis/fc_ptsd_nonafr/
+  
+
+#  base /data/humgen/burook/sum_stats/pts_eur_freeze2_overall.results \
+```
+
+
 AFR subsample
 ```{bash}
 # with freeze-2 PGC-PTSD summ stats
