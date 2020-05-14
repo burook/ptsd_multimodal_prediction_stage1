@@ -126,15 +126,37 @@ muSd <- function(x, d) paste(round(mean(x,na.rm = T),d), " (", round(sd(x,na.rm 
 
 
 
-## Cohorts Description | differ in ancestry and gender composition, case prevalence
+## Cohorts Description 
 
-| SysBio   | Ft. Campbell | GTP    | AURORA |
-|---------------|---------------|---------------|---------------|
-|<img width=180/>|<img width=180/>|<img width=180/>|<img width=180/>|
+- differ in ancestry and gender composition, case prevalence (SysBio,   FC,    GTP,     AURORA)
 
-```{r fig.show = "hold", out.width = "25%"}
+
+```{r fig.show = "hold", out.width = "20%"}
+require(ggpubr)
 
 # Race/ethnicity
+
+plot2 <- sb_pheno1 %>% 
+  group_by(predtree) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=predtree )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+#  ggtitle("SysBio") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(plot.title = element_text(hjust=0.5)) +
+  labs(fill = "Race/Ethnicity") +
+  theme(legend.title = element_text(color = "blue", size = 50),
+        legend.text = element_text(size = 40),
+        legend.key.size = unit(2, "cm"),
+        legend.key.width = unit(2,"cm"))
+
+
+# let's plot the legend for all first
+leg <- get_legend(plot2)
+as_ggplot(leg)
+
+
 
 sb_pheno1 %>% 
   group_by(predtree) %>%
@@ -142,9 +164,9 @@ sb_pheno1 %>%
   ggplot(aes(x="", y=n, fill=predtree )) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) +
-  ggtitle("SysBio") + 
+#  ggtitle("SysBio") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5,size=50))  # center the title
 
 fc_pheno1 %>% 
   group_by(predtree) %>%
@@ -152,9 +174,9 @@ fc_pheno1 %>%
   ggplot(aes(x="", y=n, fill=predtree )) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) +
-  ggtitle("Ft. Campbell") + 
+#  ggtitle("Ft. Campbell") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5,size=50))  # center the title
 
 gtp_pheno1 %>% 
   group_by(predtree) %>%
@@ -162,9 +184,9 @@ gtp_pheno1 %>%
   ggplot(aes(x="", y=n, fill=predtree )) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) +
-  ggtitle("GTP") + 
+#  ggtitle("GTP") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5,size=50))  # center the title
 
 aur_pheno1 %>% 
   group_by(predtree) %>%
@@ -172,14 +194,14 @@ aur_pheno1 %>%
   ggplot(aes(x="", y=n, fill=predtree )) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) +
-  ggtitle("AURORA") + 
+#  ggtitle("AURORA") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5,size=50))  # center the title
 
 
 # Gender
 
-sb_pheno1 %>% 
+plot2 <- sb_pheno1 %>% 
   mutate(DemoGend=factor(DemoGend) %>% fct_recode(male="1",female="2") %>% fct_relevel("male","female")) %>% 
   group_by(DemoGend) %>%
   summarise(n=n()) %>%
@@ -188,7 +210,28 @@ sb_pheno1 %>%
   coord_polar("y", start=0) +
   ggtitle("SysBio") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
+  theme(plot.title = element_text(hjust=0.5)) +
+  labs(fill = "Gender     ") +
+  theme(legend.title = element_text(color = "blue", size = 50),
+        legend.text = element_text(size = 40),
+        legend.key.size = unit(2, "cm"),
+        legend.key.width = unit(2,"cm"))
+
+# let's plot the legend for all first
+leg <- get_legend(plot2)
+as_ggplot(leg)
+
+
+sb_pheno1 %>% 
+  mutate(DemoGend=factor(DemoGend) %>% fct_recode(male="1",female="2") %>% fct_relevel("male","female")) %>% 
+  group_by(DemoGend) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=DemoGend )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+#  ggtitle("SysBio") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5))  # center the title
 
 fc_pheno1 %>% 
   mutate(GENDER=as.factor(GENDER) %>% fct_recode(male="Male",female="Female") %>% fct_relevel("male","female")) %>% 
@@ -197,9 +240,9 @@ fc_pheno1 %>%
   ggplot(aes(x="", y=n, fill=GENDER )) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) +
-  ggtitle("Ft. Campbell") + 
+#  ggtitle("Ft. Campbell") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5))  # center the title
 
 
 gtp_pheno1 %>% 
@@ -209,9 +252,9 @@ gtp_pheno1 %>%
   ggplot(aes(x="", y=n, fill=sex )) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) +
-  ggtitle("GTP") + 
+#  ggtitle("GTP") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5))  # center the title
 
 aur_pheno1 %>% 
   mutate(gend=as.factor(gend) %>% fct_recode(male="1",female="2") %>% fct_relevel("male","female")) %>% 
@@ -220,13 +263,13 @@ aur_pheno1 %>%
   ggplot(aes(x="", y=n, fill=gend )) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) +
-  ggtitle("AURORA") + 
+#  ggtitle("AURORA") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5))  # center the title
 
 # PTSD status
 
-sb_pheno1 %>% 
+plot2 <- sb_pheno1 %>% 
   mutate(PTSD_status=as.factor(PTSD_status)) %>% 
   group_by(PTSD_status) %>%
   summarise(n=n()) %>%
@@ -235,7 +278,27 @@ sb_pheno1 %>%
   coord_polar("y", start=0) +
   ggtitle("SysBio") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
+  theme(plot.title = element_text(hjust=0.5)) +
+  labs(fill = "PTSD Status") +
+  theme(legend.title = element_text(color = "blue", size = 50),
+        legend.text = element_text(size = 40),
+        legend.key.size = unit(2, "cm"),
+        legend.key.width = unit(2,"cm"))
+
+# let's plot the legend for all first
+leg <- get_legend(plot2)
+as_ggplot(leg)
+
+sb_pheno1 %>% 
+  mutate(PTSD_status=as.factor(PTSD_status)) %>% 
+  group_by(PTSD_status) %>%
+  summarise(n=n()) %>%
+  ggplot(aes(x="", y=n, fill=PTSD_status )) +
+  geom_bar(stat="identity", width=1) +
+  coord_polar("y", start=0) +
+#  ggtitle("SysBio") + 
+  theme_void() +  # remove background, grid, numeric labels
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5))  # center the title
 
 fc_pheno1 %>% 
   mutate(PTSD_status=as.factor(PTSD_status)) %>% 
@@ -244,9 +307,9 @@ fc_pheno1 %>%
   ggplot(aes(x="", y=n, fill=PTSD_status )) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) +
-  ggtitle("Ft. Campbell") + 
+#  ggtitle("Ft. Campbell") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5))  # center the title
 
 gtp_pheno1 %>% 
   mutate(PTSD_diagnosis=as.factor(PTSD_diagnosis)) %>% 
@@ -255,9 +318,9 @@ gtp_pheno1 %>%
   ggplot(aes(x="", y=n, fill=PTSD_diagnosis )) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) +
-  ggtitle("GTP") + 
+#  ggtitle("GTP") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5))  # center the title
 
 aur_pheno1 %>% 
   mutate(M3_PCL5=as.factor(M3_PCL5)) %>% 
@@ -266,27 +329,34 @@ aur_pheno1 %>%
   ggplot(aes(x="", y=n, fill=M3_PCL5 )) +
   geom_bar(stat="identity", width=1) +
   coord_polar("y", start=0) +
-  ggtitle("AURORA") + 
+#  ggtitle("AURORA") + 
   theme_void() +  # remove background, grid, numeric labels
-  theme(plot.title = element_text(hjust=0.5))  # center the title
-
+  theme(legend.position = "none", plot.title = element_text(hjust=0.5))  # center the title
+  
 ```
 
 
 
-# Marginal effects of individual predictors
-
-
 # Building composite risk score of the three
 
-## Training performance
+## Exploring classification models/algorithms | Setup
+- Training/discovery cohort: SysBio (n=)
+- Testing/replication cohort: FC (n=), GTP (n=), AURORA (n=)
+- Response variable: PTSD diagnosis
+- Predictor variables: 
+	- PRS (polygenic risk score discretized to 4 levels)
+	- EA4  (educational attainment discretized to 4 levels)
+	- CA4 (childhood trauma discretized to 4 levels)
+
+
+## Exploring classification models/algorithms | Performance
 
 ```{r}
 load(file = "/data/humgen/burook/ptsd_multimodal_prediction_stage1/model1.RData")
 knitr::kable(AUC3, caption = "Table with kable")
 ```
 
-## Training performance
+## Exploring classification models/algorithms | Performance
 
 ```{r, results='asis'}
 library(xtable)
@@ -295,19 +365,33 @@ options(xtable.timestamp = "")
 
 print(xtable(AUC3, digits = 3), type = "html")
 
-df <- data.frame(A = c(1.00123, 33.1, 6),
-                 B = c(111111, 3333333, 3123.233))
-## The following code gives the error
-## formal argument "digits" matched by multiple actual arguments
-## print(xtable(df, display = c("s","e","e")),
-##       format.args = list(digits = 3, big.mark = " ", decimal.mark = ","))
-## specify digits as argument to xtable instead
-print(xtable(df), type = "html")
 ```
 
 
- 
+## Logistic regression
+- The simplest classifier but also performs better than others.
+- Given a naturally interpretable probabilistic output, <font size="3"> $\mathbb{P}\left ( PTSD\mid PRS, CA, EA \right )$ <\font>.
+- We can also glance at the relative importance of predictor variables:
+
+<font size="3">
+$$
+\mathbb{P}\left ( PTSD\mid PRS, CA, EA \right ) = \left [ 1 + \exp -\left ( \beta_{0} + \beta_{1}(PRS) + \beta_{2}(CA) + \beta_{3}(EA) \right ) \right ]^{-1}
+$$
+</font>
+
+where $\beta_{0}=, \beta_{1}=, \beta_{2}=,\beta_{3}= $
+
+
+## More on model performance | PTSD status
+
+## More on model performance | PTSD severity
+
+
 # Summary and future work
+
+# Extra
+
+## Marginal effects of individual predictors
 
 
 
