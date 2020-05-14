@@ -44,7 +44,8 @@ PTSD_all_data <- t1 %>%
   # let's add descritized variables EA and CA
   mutate(CA4 = cut(ETISR_Total, breaks = c(-Inf,5,10,15,Inf), right=T, labels = F)) %>%
   mutate(EA4 = cut(DemoEdu, breaks = c(-Inf,2,3,4,Inf), right=T, labels = F)) %>% 
-  mutate(prs_quantiles = cut(prs, breaks = quantile(prs1$prs, probs = seq(0, 1, 1/4)), include.lowest=T))
+  mutate(prs_quantiles = cut(prs, breaks = quantile(prs1$prs, probs = seq(0, 1, 1/4)), include.lowest=T)) %>% 
+  mutate(prs_quantiles=as.numeric(prs_quantiles))
 #  filter(!is.na(prs)) %>% 
 #  filter(predtree=='EUR') %>% 
 
@@ -236,21 +237,25 @@ testing.perf
 # consider samples that have only all of the necessary variables
 data_SB <- PTSD_all_data %>% 
   filter(complete.cases(PTSD_all_data[,c("PTSD_status", "CAPSTOT_cur", "prs", "CA4", "EA4")])) %>% 
-  subset(select=c("PTSD_status", "CAPSTOT_cur", "prs", "CA4", "EA4")) 
-# partitioning into training and testing
-set.seed(171717); # for reproducibility
-inTrain <- sample(1:nrow(data1), floor(0.8*nrow(data1)))
-xTrain1 <- as.matrix(data1[inTrain,c("prs","CA4","EA4")])
-yTrain1 <- factor(as_vector(data1[inTrain,c("PTSD_status")]), labels = c("control","case"))
-xTest1 <- as.matrix(data1[-inTrain,c("prs","CA4","EA4")])
-yTest1 <- factor(as_vector(data1[-inTrain,c("PTSD_status")]), labels = c("control","case"))
+  subset(select=c("PTSD_status", "CAPSTOT_cur","ETISR_Total","DemoEdu", "prs", "CA4", "EA4","prs_quantiles")) 
+
+# # partitioning into training and testing
+# set.seed(171717); # for reproducibility
+# inTrain <- sample(1:nrow(data1), floor(0.8*nrow(data1)))
+# xTrain1 <- as.matrix(data1[inTrain,c("prs","CA4","EA4")])
+# yTrain1 <- factor(as_vector(data1[inTrain,c("PTSD_status")]), labels = c("control","case"))
+# xTest1 <- as.matrix(data1[-inTrain,c("prs","CA4","EA4")])
+# yTest1 <- factor(as_vector(data1[-inTrain,c("PTSD_status")]), labels = c("control","case"))
+
+xTrain1 <- as.matrix(data_SB[,c("prs_quantiles","CA4","EA4")])
+yTrain1 <- factor(as_vector(data_SB[,c("PTSD_status")]), labels = c("control","case"))
 
 
 require(pROC)
 # a matrix to hold the performances of the models
-AUC3 <- matrix(0, nrow = 4, ncol = 2)
+AUC3 <- matrix(0, nrow = 4, ncol = 4)
 rownames(AUC3) <- c("logistic regression", "linear SVM", "boosted trees", "random forest")
-colnames(AUC3) <- c("training","testing")
+colnames(AUC3) <- c("training/SysBio","testing1/FC","testing2/GTP","testing3/AURORA")
 
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # logistic regression
@@ -267,12 +272,11 @@ lr1 <- train(y=yTrain1,x=as.matrix(xTrain1),
 
 pred = predict(lr1, newdata=as.data.frame(xTrain1), type='prob')
 AUC3[1,1] = (pROC::roc(yTrain1, pred[,1],ci=F))$auc
-pred = predict(lr1, newdata=as.data.frame(xTest1), type='prob')
-AUC3[1,2] = (pROC::roc(yTest1, pred[,1],ci=F))$auc
+# pred = predict(lr1, newdata=as.data.frame(xTest1), type='prob')
+# AUC3[1,2] = (pROC::roc(yTest1, pred[,1],ci=F))$auc
 
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # SVM
-#library(dplyr)  
 require(kernlab)   
 
 # Setup for cross validation
@@ -294,8 +298,8 @@ svm1 <- train(x=xTrain1,
 
 pred = predict(svm1, newdata=xTrain1, type="prob")
 AUC3[2,1] = (pROC::roc(as.factor(yTrain1), pred[,1],ci=T))$auc
-pred = predict(svm1, newdata=xTest1, type="prob")
-AUC3[2,2] = (pROC::roc(as.factor(yTest1), pred[,1],ci=T))$auc
+# pred = predict(svm1, newdata=xTest1, type="prob")
+# AUC3[2,2] = (pROC::roc(as.factor(yTest1), pred[,1],ci=T))$auc
 
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # boosted tree
@@ -320,8 +324,8 @@ gbm1 <- train(x=xTrain1,
 
 pred = predict(gbm1, newdata=xTrain1, type="prob")
 AUC3[3,1] = (pROC::roc(as.factor(yTrain1), pred[,1],ci=T))$auc
-pred = predict(svm1, newdata=xTest1, type="prob")
-AUC3[3,2] = (pROC::roc(as.factor(yTest1), pred[,1],ci=T))$auc
+# pred = predict(gbm1, newdata=xTest1, type="prob")
+# AUC3[3,2] = (pROC::roc(as.factor(yTest1), pred[,1],ci=T))$auc
 
 ###~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Random forest
@@ -330,13 +334,14 @@ rf1 <- randomForest(x=xTrain1, y=as.factor(yTrain1))
 
 pred = predict(rf1, newdata=xTrain1, type="prob")
 AUC3[4,1] = (pROC::roc(as.factor(yTrain1), pred[,1],ci=T))$auc
-pred = predict(rf1, newdata=xTest1, type="prob")
-AUC3[4,2] = (pROC::roc(as.factor(yTest1), pred[,1],ci=T))$auc
+# pred = predict(rf1, newdata=xTest1, type="prob")
+# AUC3[4,2] = (pROC::roc(as.factor(yTest1), pred[,1],ci=T))$auc
+
 AUC3
 
 ```
 
 ```{r}
-save(lr1, svm1, gbm1, rf1, AUC3, file = "/data/humgen/burook/ptsd_multimodal_prediction_stage1/model1.RData")
+save(data_SB, lr1, svm1, gbm1, rf1, AUC3, file = "/data/humgen/burook/ptsd_multimodal_prediction_stage1/model1.RData")
 ```
 
