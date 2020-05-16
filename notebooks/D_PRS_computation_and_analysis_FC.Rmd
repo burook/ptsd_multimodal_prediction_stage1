@@ -133,7 +133,10 @@ R --file=/PHShome/bm363/bin/PRSice_v1.25/PRSice_v1.25.R -q --args  \
   target /data/humgen/burook/FC_analysis/fc_ptsd/tmp_fc1 \
   pheno.file /data/humgen/burook/FC_analysis/fc_ptsd_nonafr/pheno_file_status2_nonafr \
   binary.target T \
-  covariates C1,C2,C3,C4,C5,C6,C7,C8,C9,C10 \
+  slower 0.05 \
+  sinc 0.01 \
+  supper 0.2 \
+  covariates C1,C2,C3,C4,C5 \
   figname fc_ptsd_nonafr_freez1 \
   wd /data/humgen/burook/FC_analysis/fc_ptsd_nonafr/
   
