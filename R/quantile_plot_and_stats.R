@@ -112,8 +112,7 @@ quantile_plot_and_stats <- function(prs = prs1,
   
   SE1 = (quantiles.df[,"CI.U"] - quantiles.df[,1])/1.96;
   quantiles.df <- cbind(quantiles.df,SE1)
-  print(SE1)
-  print(quantiles.df)
-  return(quantiles.plot)
+  #print(quantiles.df)
+  return(c(quantiles.df,quantiles.plot))
 }
 
