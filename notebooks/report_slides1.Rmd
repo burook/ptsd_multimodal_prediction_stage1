@@ -1,9 +1,8 @@
 ---
-title: "A step towards a robust multi-modal risk prediction model of PTSD"
-subtitle: "Incorporating genetic score with other pre-trauma risk factors"
+title: "Multi-modal risk prediction model of PTSD"
+subtitle: "Incorporating PRS with other pre-trauma risk factors"
 author:
-  - Meeting venue
-  - Harvard/McLean
+  Harvard/McLean
 date: May 2020
 output:
   ioslides_presentation:
@@ -58,16 +57,30 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE,  message=FALSE)
 
 ## Choosing other predictors
 
-Three main criteria:
-- literature evidence for a relatively large effect
-- pre-trauma risk factor like genetics
-- can be measured easily and accurately
+- Three main criteria: 
+  + literature evidence for a relatively large effect 
+  + pre-trauma risk factor like genetics 
+  + can be measured easily and accurately 
 
-Accordingly, three predictors are studied in the first stage
-1. Polygenic risk (PRS)
-2. Childhood adversity (CA)
-3. Educational attainment (EA)
+- Accordingly, three predictors are studied in the first stage
+    1. Polygenic risk (PRS)
+    2. Childhood adversity (CA)
+    3. Educational attainment (EA)
 
+## Overall Procedure
+```{r out.width = "60%", fig.align="center"}
+require(knitr)
+include_graphics("/data/humgen/burook/ptsd_multimodal_prediction_stage1/plots/PRS2.png") 
+```
+
+## Constructing PRS
+- PRS computation was done using <span style="color: blue;"> pruning and thresholding </span> (P+T) approach as implemented on PRSice.
+- GWAS summary statistic from PGC-PTSD (<span style="color: blue;">freeze-2</span>) study was used.
+	- European ancestry (23,212 cases and 151,447 control)
+- ***Imputation and QC*** of samples and variants for all four cohorts were conducted separately.
+	- Imputation is done with Ricopili, QC is done with PLINK and bash.
+- <span style="color: blue;">PTSD status</span> is the phenotype of interest, but the diagnosis method varies among the four cohort.
+	- Level of trauma and time interval between trauma and assessment also differ among cohorts.
 
 
 
@@ -118,7 +131,7 @@ muSd <- function(x, d) paste(round(mean(x,na.rm = T),d), " (", round(sd(x,na.rm 
 |---------------|---------------|---------------|---------------|---------------|
 | Use      | Training and Validation | Testing/ Replication | Testing/ Replication | Testing/ Replication |
 | n      | `r nrow(sb_pheno1)` | `r nrow(fc_pheno1)` |  `r nrow(gtp_pheno1)` | `r nrow(aur_pheno1)`  |
-| Population      | Veterans from Marines, Navy, Army and the Air Force | Active-duty Army personnel | Civilian recruited from primary care waiting room | Civilian recruited at emergency room |
+| Population      | ***Veterans*** from Marines, Navy, Army and the Air Force | ***Active-duty*** Army personnel | ***Civilian*** recruited from primary care waiting room | ***Civilian*** recruited at emergency room |
 | Diagnosis Score      | CAPS | PCL | PTSS | PCL |
 | Age: mean (sd) | `r muSd(sb_pheno1$DemoAge,2)` | `r muSd(fc_pheno1$T3_AGE,2)` | `r muSd(gtp_pheno1$age,2)` | `r muSd(aur_pheno1$ED_Age,2)` |
 | BMI: mean (sd) | `r muSd(sb_pheno1$BMI,2)` | `r muSd(fc_pheno1$BMI,2)` |  | `r muSd(aur_pheno1$BMI,2)` |
@@ -128,8 +141,11 @@ muSd <- function(x, d) paste(round(mean(x,na.rm = T),d), " (", round(sd(x,na.rm 
 
 ## Cohorts Description 
 
-- differ in ancestry and gender composition, case prevalence (SysBio,   FC,    GTP,     AURORA)
+- differ in ancestry and gender composition, case prevalence 
 
+<span style="color: blue;">
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; SysBio &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp;  &nbsp; &nbsp; FC &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;  &nbsp; &nbsp; &nbsp; GTP &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; AURORA
+ </span>
 
 ```{r fig.show = "hold", out.width = "20%"}
 require(ggpubr)
@@ -270,6 +286,7 @@ aur_pheno1 %>%
 # PTSD status
 
 plot2 <- sb_pheno1 %>% 
+  mutate(PTSD_status = na_if(PTSD_status,"Sub_threshold")) %>% 
   mutate(PTSD_status=as.factor(PTSD_status)) %>% 
   group_by(PTSD_status) %>%
   summarise(n=n()) %>%
@@ -289,7 +306,9 @@ plot2 <- sb_pheno1 %>%
 leg <- get_legend(plot2)
 as_ggplot(leg)
 
+
 sb_pheno1 %>% 
+  mutate(PTSD_status = na_if(PTSD_status,"Sub_threshold")) %>% 
   mutate(PTSD_status=as.factor(PTSD_status)) %>% 
   group_by(PTSD_status) %>%
   summarise(n=n()) %>%
@@ -312,6 +331,7 @@ fc_pheno1 %>%
   theme(legend.position = "none", plot.title = element_text(hjust=0.5))  # center the title
 
 gtp_pheno1 %>% 
+  mutate(PTSD_diagnosis = na_if(PTSD_diagnosis,"7011")) %>% 
   mutate(PTSD_diagnosis=as.factor(PTSD_diagnosis)) %>% 
   group_by(PTSD_diagnosis) %>%
   summarise(n=n()) %>%
@@ -339,9 +359,10 @@ aur_pheno1 %>%
 
 # Building composite risk score of the three
 
-## Exploring classification models/algorithms | Setup
-- Training/discovery cohort: SysBio (n=)
-- Testing/replication cohort: FC (n=), GTP (n=), AURORA (n=)
+## Exploring classification algorithms | Setup
+- Training/discovery cohort: SysBio (n=145)
+- Testing/replication cohort: 
+  FC (n=199), GTP (n=5,436), AURORA (n=507)
 - Response variable: PTSD diagnosis
 - Predictor variables: 
 	- PRS (polygenic risk score discretized to 4 levels)
@@ -349,16 +370,10 @@ aur_pheno1 %>%
 	- CA4 (childhood trauma discretized to 4 levels)
 
 
-## Exploring classification models/algorithms | Performance
-
-```{r}
-load(file = "/data/humgen/burook/ptsd_multimodal_prediction_stage1/model1.RData")
-knitr::kable(AUC3, caption = "Table with kable")
-```
-
-## Exploring classification models/algorithms | Performance
+## Exploring classification algorithms | Performance
 
 ```{r, results='asis'}
+load(file = "/data/humgen/burook/ptsd_multimodal_prediction_stage1/model1_perf.RData")
 library(xtable)
 options(xtable.floating = FALSE)
 options(xtable.timestamp = "")
@@ -370,28 +385,66 @@ print(xtable(AUC3, digits = 3), type = "html")
 
 ## Logistic regression
 - The simplest classifier but also performs better than others.
-- Given a naturally interpretable probabilistic output, <font size="3"> $\mathbb{P}\left ( PTSD\mid PRS, CA, EA \right )$ <\font>.
+- Given a naturally interpretable probabilistic output, <font size="3"> $\mathbb{P}\left ( PTSD\mid PRS, CA, EA \right )$ </font>.
 - We can also glance at the relative importance of predictor variables:
 
 <font size="3">
 $$
 \mathbb{P}\left ( PTSD\mid PRS, CA, EA \right ) = \left [ 1 + \exp -\left ( \beta_{0} + \beta_{1}(PRS) + \beta_{2}(CA) + \beta_{3}(EA) \right ) \right ]^{-1}
 $$
-</font>
-
-where $\beta_{0}=, \beta_{1}=, \beta_{2}=,\beta_{3}= $
 
 
-## More on model performance | PTSD status
+where $$\beta_{0}=-0.425, \beta_{1}=0.163, \beta_{2}=0.459,\beta_{3}=-0.467 $$ </font>
 
-## More on model performance | PTSD severity
+
+## More on model performance | PTSD status and severity
+
+
+```{r, results='asis'}
+load(file = "/data/humgen/burook/ptsd_multimodal_prediction_stage1/model1_perf.RData")
+
+knitr::kable(perf1[1:4,2:4], caption = "Replication datasets")
+
+```
+
 
 
 # Summary and future work
 
+
 # Extra
 
-## Marginal effects of individual predictors
 
+## Marginal effect | Childhood trauma
+
+```{r}
+require(knitr)
+
+include_graphics("/data/humgen/burook/ptsd_multimodal_prediction_stage1/plots/CA_and_ptsd_status_plot_1.pdf")
+```
+
+
+## Marginal effect | Educational attainment
+
+```{r fig.width=0.25}
+require(knitr)
+include_graphics("/data/humgen/burook/ptsd_multimodal_prediction_stage1/plots/EA_and_ptsd_status_plot_1.pdf") 
+
+```
+
+
+## Next steps | Incorporate additional predictors
+
+<div class="columns-2">
+
+```{r fig.show = "hold", out.width = "100%"}
+include_graphics("/data/humgen/burook/ptsd_multimodal_prediction_stage1/plots/figure4_no_bdnf.png") 
+
+```
+
+  - 
+  - 
+  - 
+</div>
 
 

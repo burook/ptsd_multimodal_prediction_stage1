@@ -29,8 +29,8 @@ library(readxl)
 t1 <- read_delim("/data/humgen/burook/SysBio_analysis/table_pred", col_names = TRUE, delim = " ")
 sb_pheno1 <- read_delim("/data/humgen/burook/data_raw/sb/PTSD_clinical.txt", col_names = TRUE, delim = "\t") %>%
   mutate(ID=as.character(ID)) %>% 
-  inner_join(t1, by=c("ID"="Sample"))
-sb_pheno1 %>% print()
+  inner_join(t1, by=c("ID"="Sample")) %>% 
+  print()
 ```
 
 
