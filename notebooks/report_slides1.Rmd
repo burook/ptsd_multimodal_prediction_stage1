@@ -25,11 +25,14 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE,  message=FALSE)
 
 # Background and Motivation
 
-## Why PTSD biomarker?
-- PTSD is a debilitating and prevalent mental disorder affecting military as well as civilian population. 
-- Exposure to trauma is a necessary but not sufficient condition/criteria for PTSD onset and diagnosis. In fact, only about 10% of people with traumatic experience develops a full-fledged PTSD.
-- A complex multifactorial confluence of biological and environmental factors is thought to determine susceptibility to PTSD.
-- Understanding how these risk and resilience factors play out to determine PTSD outcomes is crucial for planning preventative strategies and for developing early diagnostic tools and therapeutic interventions.
+## Why multi-modal PTSD biomarker?
+- PTSD is a prevalent and debilitating disorder resulting from a complex confluence of environmental and biological factors. 
+- Risk and resilience factors individually have small effect-size to be usefully predictive enough. A single modality is unlikely to be useful enough by itself.
+- Hence, in order to build a robust PTSD biomarker, we have to integrate multiple heterogenous markers.
+- Moreover, some markers might be more relevant to specific sub-population (etiological heterogeneity). Focusing on a single marker may miss relevant signal for some sub-population.
+- Now if we are convinced of the need to a multi-modal predictor panel, the logical questions are:
+    - What predictors to include in the panel?
+    - How to incorporate information from these heterogenous signals?
 
 
 ## Two main approaches / road maps
@@ -38,6 +41,12 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE,  message=FALSE)
 - But this purely data-driven approach is limited by lack of sufficient sample size for a robust predictive model. 
 - An alternative (and complementary) approach is to start from a few (or single) markers and incrementally incorporate additional markers guided by prior knowledge as well as available data.
 - We started from a genetic score and incorporate additional predictors incrementally.
+
+```{r out.width = "100%", fig.align="center"}
+require(knitr)
+include_graphics("/data/humgen/burook/ptsd_multimodal_prediction_stage1/plots/approach1.png") 
+```
+
 
 ## Why start with genetic score?
 
@@ -48,12 +57,6 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE,  message=FALSE)
 - External large-scale generic studies can be leveraged to train our predictive models. We can even incorporate GWAS results from genetically correlated disorders and traits.
 - Can be assessed before trauma exposure
 
-
-## Why incorporate additional risk factors?
-
-- Currently available PTSD genetic studies are still very under-powered, genetic predictors still have low performance. 
-- Also, since PTSD is only moderately heritable (h^2≈30%-70% depending on gender), a genetic score by itself is inherently limited.
-- Even if the need for a multi-input model is clear, the risk factors that should be included and how best to combine them are less clear. 
 
 ## Choosing other predictors
 
@@ -67,19 +70,15 @@ knitr::opts_chunk$set(echo = FALSE, warning=FALSE,  message=FALSE)
     2. Childhood adversity (CA)
     3. Educational attainment (EA)
 
-## Overall Procedure
-```{r out.width = "60%", fig.align="center"}
-require(knitr)
-include_graphics("/data/humgen/burook/ptsd_multimodal_prediction_stage1/plots/PRS2.png") 
-```
 
 ## Constructing PRS
-- PRS computation was done using <span style="color: blue;"> pruning and thresholding </span> (P+T) approach as implemented on PRSice.
-- GWAS summary statistic from PGC-PTSD (<span style="color: blue;">freeze-2</span>) study was used.
+
+- PRS computation was done using ***pruning and thresholding*** (P+T) approach as implemented on PRSice.
+- GWAS summary statistic from PGC-PTSD (***freeze-2***) study was used.
 	- European ancestry (23,212 cases and 151,447 control)
 - ***Imputation and QC*** of samples and variants for all four cohorts were conducted separately.
 	- Imputation is done with Ricopili, QC is done with PLINK and bash.
-- <span style="color: blue;">PTSD status</span> is the phenotype of interest, but the diagnosis method varies among the four cohort.
+- PTSD status is the phenotype of interest, but the diagnosis method varies among the four cohort.
 	- Level of trauma and time interval between trauma and assessment also differ among cohorts.
 
 
@@ -359,15 +358,24 @@ aur_pheno1 %>%
 
 # Building composite risk score of the three
 
+## Overall Procedure
+
+```{r out.width = "60%", fig.align="center"}
+require(knitr)
+include_graphics("/data/humgen/burook/ptsd_multimodal_prediction_stage1/plots/PRS2.png") 
+```
+
 ## Exploring classification algorithms | Setup
-- Training/discovery cohort: SysBio (n=145)
-- Testing/replication cohort: 
-  FC (n=199), GTP (n=5,436), AURORA (n=507)
+
+- Independent discovery and replication cohorts: 
+  - Training cohort: SysBio (n=145)
+  - Testing cohort: FC (n=199), GTP (n=5,436), AURORA (n=507)
 - Response variable: PTSD diagnosis
 - Predictor variables: 
-	- PRS (polygenic risk score discretized to 4 levels)
-	- EA4  (educational attainment discretized to 4 levels)
-	- CA4 (childhood trauma discretized to 4 levels)
+  - Discretizing predictors enables prediction across cohorts and results in a more interpretable model.
+	- PRS (polygenic risk score discretized into four equally binned quantiles)
+	- EA4  (educational attainment discretized to 4 levels: High sch. diploma, 2-yr assoc., Bachelor’s, graduate degree)
+	- CA4 (childhood adversity discretized to 4 levels)
 
 
 ## Exploring classification algorithms | Performance
@@ -380,6 +388,16 @@ options(xtable.timestamp = "")
 
 print(xtable(AUC3, digits = 3), type = "html")
 
+```
+
+## Exploring classification algorithms | Performance
+
+```{r, results='asis'}
+load(file = "/data/humgen/burook/ptsd_multimodal_prediction_stage1/model1_perf.RData")
+
+library(corrplot)
+
+corrplot(AUC3, method="square", addcolorlabel="no", addCoef.col = T, cl.pos="n", tl.srt=35)
 ```
 
 
@@ -409,10 +427,28 @@ knitr::kable(perf1[1:4,2:4], caption = "Replication datasets")
 
 
 
-# Summary and future work
+## Summary and future work
+
+- demonstrated a trivariate risk prediction model and tested it on three independent cohorts.
+- lack of uniformity in assessment methods is a major challenge in replicating results across cohorts
+- next steps includes incorporating additional predictor variables 
 
 
 # Extra
+
+
+## Next steps | Incorporate additional predictors
+
+<div class="columns-2">
+
+```{r fig.show = "hold", out.width = "100%"}
+include_graphics("/data/humgen/burook/ptsd_multimodal_prediction_stage1/plots/figure4_no_bdnf.png") 
+
+```
+
+- a model with three more additional predictors
+- a graphical model has several additional advantages over the ML methods discussed here
+</div>
 
 
 ## Marginal effect | Childhood trauma
@@ -431,20 +467,5 @@ require(knitr)
 include_graphics("/data/humgen/burook/ptsd_multimodal_prediction_stage1/plots/EA_and_ptsd_status_plot_1.pdf") 
 
 ```
-
-
-## Next steps | Incorporate additional predictors
-
-<div class="columns-2">
-
-```{r fig.show = "hold", out.width = "100%"}
-include_graphics("/data/humgen/burook/ptsd_multimodal_prediction_stage1/plots/figure4_no_bdnf.png") 
-
-```
-
-  - 
-  - 
-  - 
-</div>
 
 
